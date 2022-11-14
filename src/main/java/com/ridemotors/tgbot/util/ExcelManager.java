@@ -1,6 +1,6 @@
 package com.ridemotors.tgbot.util;
 
-import com.ridemotors.tgbot.domain.DocumentRead;
+import com.ridemotors.tgbot.domain.ProductsReadable;
 import com.ridemotors.tgbot.exception.FormatExcelException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -9,75 +9,120 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class ExcelManager {
 
-     private enum TYPE_ROW {
-        PRODUCT, CATEGORY, HEADER, SERVICE, EMPTY;
+    private enum TYPE_ROW {
+        PRODUCT, HEADER, EMPTY, COMMAND_ADD_PRODUCT, COMMAND_DELETE_PRODUCT, COMMAND_IGNORE_ROW;
     }
 
     private final Logger log = LoggerFactory.getLogger(ExcelManager.class);
 
-    public DocumentRead parse(File file) throws IOException, FormatExcelException {
+    public ProductsReadable parseProducts(File file) throws IOException, FormatExcelException {
         log.info("Считывание файла {} {}", file.getName(), new Date(System.currentTimeMillis()));
         Workbook workbook = new XSSFWorkbook(new FileInputStream(file));
         Sheet sheet = workbook.getSheetAt(0);
-        Row previousRow = null;
         List<String> columnNames = null;
-        List<String> categories = null;
+        List<HashMap<String, String>> productsAdd = new ArrayList();
+        List<HashMap<String, String>> productsDelete = new ArrayList();
+        TYPE_ROW command = TYPE_ROW.COMMAND_ADD_PRODUCT;
         for (Row row : sheet) {
-            switch (getTypeRow(previousRow, row)){
+            switch (getTypeRow(row)){
                 case EMPTY:
-                case SERVICE:
                     continue;
+                case COMMAND_IGNORE_ROW:
+                    break;
+                case COMMAND_ADD_PRODUCT:
+                    command = TYPE_ROW.COMMAND_ADD_PRODUCT;
+                case COMMAND_DELETE_PRODUCT:
+                    command = TYPE_ROW.COMMAND_DELETE_PRODUCT;
                 case HEADER:
-                    columnNames = new ArrayList<>();
+                    columnNames = getColumnNames(row);
                     break;
                 case PRODUCT:
-                    break;
-                case CATEGORY:
-                    categories = new ArrayList<>();
+                    if(command.equals(TYPE_ROW.COMMAND_ADD_PRODUCT))
+                        productsAdd.add(getProductData(row, columnNames));
+                    if(command.equals(TYPE_ROW.COMMAND_DELETE_PRODUCT))
+                        productsDelete.add(getProductData(row, columnNames));
                     break;
             }
-            previousRow = row;
         }
+        ProductsReadable productsReadable = new ProductsReadable();
+        productsReadable.setProductsAdd(productsAdd);
+        productsReadable.setProductsDelete(productsDelete);
         log.info("Считывание файла {} завершено успешно", file.getName());
+        return productsReadable;
+    }
+
+    private HashMap<String, String> getProductData(Row row, List<String> columnNames) throws FormatExcelException {
+        if(columnNames==null)
+            throw new FormatExcelException("Необходимо указать наименование полей для каждой отдельной категории товаров");
+        HashMap<String,String> productData = new HashMap<>();
+        int column = 0;
+        for(Cell cell : row) {
+            String cellValue = getCellValue(cell);
+            if(column<columnNames.size())
+                productData.put(columnNames.get(column), cellValue);
+            else break;
+            column++;
+        }
+        return productData;
+    }
+
+    private List<String> getColumnNames(Row row) {
+        List<String> columnNames = new ArrayList();
+        for(Cell cell : row) {
+            if(cell!=null) {
+                String cellValue = getCellValue(cell);
+                if(!cellValue.isBlank())
+                    columnNames.add(cellValue);
+            }
+        }
         return null;
     }
 
-    private TYPE_ROW getTypeRow(Row previousRow, Row row) throws FormatExcelException {
-        if(previousRow!=null){
-            Cell previousFirstCell = previousRow.getCell(0);
-            boolean isPreviousStringCell = previousFirstCell.getCellType().equals(CellType.STRING);
-
-            Cell currentFirstCell = row.getCell(0);
-            boolean isCurrentStringCell = currentFirstCell.getCellType().equals(CellType.STRING);
-
-            if(isPreviousStringCell && previousFirstCell.getStringCellValue().equals("Категория")) {
-                if(currentFirstCell.getStringCellValue()!=null)
-                    return TYPE_ROW.CATEGORY;
-                else
-                    throw new FormatExcelException("После ключевого слова \"Категория\", в следующей строке нужно перечислить категории");
-            }
-            else if(isCurrentStringCell && currentFirstCell.getStringCellValue().equals("id")) {
-                return TYPE_ROW.HEADER;
-            }
-            if(isEmptyRow(row))
-                return TYPE_ROW.EMPTY;
-            else
-                return TYPE_ROW.PRODUCT;
+    private String getCellValue(Cell cell) {
+        String cellValue = "";
+        switch (cell.getCellType()){
+            case STRING:
+                cellValue = cell.getStringCellValue();
+                break;
+            case NUMERIC:
+                cellValue = String.valueOf(cell.getNumericCellValue());
         }
-        else {
-            if(isEmptyRow(row))
-                return TYPE_ROW.EMPTY;
-            else
-                return TYPE_ROW.SERVICE;
+        return cellValue;
+    }
+
+    private TYPE_ROW getTypeRow(Row row) throws FormatExcelException {
+        if(isEmptyRow(row))
+            return TYPE_ROW.EMPTY;
+        Cell firstCell = row.getCell(0);
+        if(firstCell!=null) {
+            boolean isString = firstCell.getCellType().equals(CellType.STRING);
+            boolean isNotBlank = !firstCell.getStringCellValue().isBlank();
+            if(isString && isNotBlank ) {
+                String cellValue = firstCell.getStringCellValue();
+                switch(cellValue.toLowerCase()) {
+                    case "добавить товар":
+                        return TYPE_ROW.COMMAND_ADD_PRODUCT;
+                    case "id_category*":
+                    case "id*":
+                        return TYPE_ROW.HEADER;
+                    case "удалить товар":
+                        return TYPE_ROW.COMMAND_DELETE_PRODUCT;
+                    case "примечание*":
+                        return TYPE_ROW.COMMAND_IGNORE_ROW;
+                    default:
+                        return TYPE_ROW.PRODUCT;
+                }
+            }
         }
+        return TYPE_ROW.EMPTY;
     }
 
     private boolean isEmptyRow(Row row) {
@@ -93,7 +138,7 @@ public class ExcelManager {
         return true;
     }
 
-    public File generateExcel(DocumentRead doc) {
+    public File generateExcel(ProductsReadable doc) {
         return null;
     }
 }
