@@ -1,4 +1,6 @@
-package com.ridemotors.tgbot.model.product;
+package com.ridemotors.tgbot.model;
+
+import com.ridemotors.tgbot.constant.STATE_PRODUCT;
 
 import javax.persistence.*;
 
@@ -18,11 +20,21 @@ public class Product {
 
     Long price;
 
-    String character;
-
-    String state = STATE.READY.toString();
+    String state = STATE_PRODUCT.READY.toString();
 
     Boolean source = false;
+
+    Long category;
+
+    String character;
+
+    public Long getCategory() {
+        return category;
+    }
+
+    public void setCategory(Long category) {
+        this.category = category;
+    }
 
     public Boolean getSource() {
         return source;

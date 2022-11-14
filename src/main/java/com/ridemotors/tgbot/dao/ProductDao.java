@@ -1,7 +1,6 @@
-package com.ridemotors.tgbot.dao.product;
+package com.ridemotors.tgbot.dao;
 
-import com.ridemotors.tgbot.model.product.Category;
-import com.ridemotors.tgbot.model.product.Product;
+import com.ridemotors.tgbot.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

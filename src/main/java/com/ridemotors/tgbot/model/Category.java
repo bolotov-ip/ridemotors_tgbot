@@ -1,4 +1,4 @@
-package com.ridemotors.tgbot.model.product;
+package com.ridemotors.tgbot.model;
 
 import javax.persistence.*;
 
@@ -11,7 +11,17 @@ public class Category {
 
     String name;
 
-    Long parentCategoryId = 0L;
+    Long parent = 0L;
+
+    Long children = 0L;
+
+    public Long getChildren() {
+        return children;
+    }
+
+    public void setChildren(Long children) {
+        this.children = children;
+    }
 
     public Long getId() {
         return id;
@@ -29,11 +39,11 @@ public class Category {
         this.name = name;
     }
 
-    public Long getParentCategoryId() {
-        return parentCategoryId;
+    public Long getParent() {
+        return parent;
     }
 
-    public void setParentCategoryId(Long parentCategoryId) {
-        this.parentCategoryId = parentCategoryId;
+    public void setParent(Long parent) {
+        this.parent = parent;
     }
 }
