@@ -4,16 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 
 public class ProductsReadable {
+
     List<HashMap<String, String>> productsAdd;
     List<HashMap<String, String>> productsDelete;
-
-    public ProductsReadable(List<HashMap<String, String>> productsAdd, List<HashMap<String, String>> productsDelete) {
-        this.productsAdd = productsAdd;
-        this.productsDelete = productsDelete;
-    }
-
-    public ProductsReadable() {
-    }
 
     public List<HashMap<String, String>> getProductsDelete() {
         return productsDelete;

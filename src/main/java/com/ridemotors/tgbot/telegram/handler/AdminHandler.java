@@ -39,14 +39,29 @@ public class AdminHandler implements Handler{
     @Override
     public AnswerBot run() {
         if (update.hasMessage() && update.getMessage().hasText()) {
+            String textMessage = update.getMessage().getText();
 
+            if(textMessage.equals(COMMANDS.COMMAND_START.getText())) {
+                return eventAdmin.start(update);
+            }
+            else {
+                return eventAdmin.commandNotSupport(update);
+            }
 
         } else if(update.hasCallbackQuery()) {
+            String callbackData = update.getCallbackQuery().getData();
 
-
+            if(callbackData.equals(BUTTONS.BTN_ADMIN_PRODUCTS.toString())) {
+                return eventAdmin.products(update);
+            }
+            else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_FILE_PRODUCTS.toString())) {
+                return eventAdmin.loadProducts(update);
+            }
         }
         else if(update.getMessage().hasDocument()) {
-
+            STATE_BOT state = stateDao.getState(update.getMessage().getChatId());
+            if(state.equals(STATE_BOT.ADMIN_LOAD_PRODUCTS))
+                return eventAdmin.receiveProducts(update);
         }
         else {
             return eventAdmin.commandNotSupport(update);

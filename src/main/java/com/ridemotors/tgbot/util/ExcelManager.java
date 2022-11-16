@@ -6,6 +6,8 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+@Service
 public class ExcelManager {
 
     private enum TYPE_ROW {
@@ -36,11 +39,14 @@ public class ExcelManager {
                 case EMPTY:
                     continue;
                 case COMMAND_IGNORE_ROW:
+                    command = TYPE_ROW.COMMAND_IGNORE_ROW;
                     break;
                 case COMMAND_ADD_PRODUCT:
                     command = TYPE_ROW.COMMAND_ADD_PRODUCT;
+                    break;
                 case COMMAND_DELETE_PRODUCT:
                     command = TYPE_ROW.COMMAND_DELETE_PRODUCT;
+                    break;
                 case HEADER:
                     columnNames = getColumnNames(row);
                     break;
@@ -56,6 +62,7 @@ public class ExcelManager {
         productsReadable.setProductsAdd(productsAdd);
         productsReadable.setProductsDelete(productsDelete);
         log.info("Считывание файла {} завершено успешно", file.getName());
+        workbook.close();
         return productsReadable;
     }
 
@@ -83,7 +90,7 @@ public class ExcelManager {
                     columnNames.add(cellValue);
             }
         }
-        return null;
+        return columnNames;
     }
 
     private String getCellValue(Cell cell) {
@@ -93,7 +100,7 @@ public class ExcelManager {
                 cellValue = cell.getStringCellValue();
                 break;
             case NUMERIC:
-                cellValue = String.valueOf(cell.getNumericCellValue());
+                cellValue = Util.doubleToString(cell.getNumericCellValue());
         }
         return cellValue;
     }
@@ -104,22 +111,28 @@ public class ExcelManager {
         Cell firstCell = row.getCell(0);
         if(firstCell!=null) {
             boolean isString = firstCell.getCellType().equals(CellType.STRING);
-            boolean isNotBlank = !firstCell.getStringCellValue().isBlank();
-            if(isString && isNotBlank ) {
-                String cellValue = firstCell.getStringCellValue();
-                switch(cellValue.toLowerCase()) {
-                    case "добавить товар":
-                        return TYPE_ROW.COMMAND_ADD_PRODUCT;
-                    case "id_category*":
-                    case "id*":
-                        return TYPE_ROW.HEADER;
-                    case "удалить товар":
-                        return TYPE_ROW.COMMAND_DELETE_PRODUCT;
-                    case "примечание*":
-                        return TYPE_ROW.COMMAND_IGNORE_ROW;
-                    default:
-                        return TYPE_ROW.PRODUCT;
+            boolean isNumeric = firstCell.getCellType().equals(CellType.NUMERIC);
+            if(isString) {
+                boolean isNotBlank = !firstCell.getStringCellValue().isBlank();
+                if(isNotBlank) {
+                    String cellValue = firstCell.getStringCellValue();
+                    switch(cellValue.toLowerCase()) {
+                        case "добавить товар":
+                            return TYPE_ROW.COMMAND_ADD_PRODUCT;
+                        case "id_category*":
+                        case "id*":
+                            return TYPE_ROW.HEADER;
+                        case "удалить товар":
+                            return TYPE_ROW.COMMAND_DELETE_PRODUCT;
+                        case "примечание*":
+                            return TYPE_ROW.COMMAND_IGNORE_ROW;
+                        default:
+                            return TYPE_ROW.PRODUCT;
+                    }
                 }
+            }
+            if(isNumeric) {
+                return TYPE_ROW.PRODUCT;
             }
         }
         return TYPE_ROW.EMPTY;

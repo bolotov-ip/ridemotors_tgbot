@@ -10,8 +10,8 @@ import java.util.Optional;
 
 public interface CategoryDao extends JpaRepository<Category, Long> {
 
-    @Query("SELECT pc FROM product_category pc where pc.parentCategoryId =:parentCategoryId")
-    public List<Category> getCategoryByParent(@Param("parentCategoryId") Long parentCategoryId);
+    @Query("SELECT pc FROM product_category pc where pc.parent =:parent")
+    public List<Category> getCategoryByParent(@Param("parent") Long parent);
 
     default public void deleteById(Long categoryId) {
         Optional<Category> category = findById(categoryId);

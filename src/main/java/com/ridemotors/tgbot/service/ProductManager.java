@@ -2,12 +2,16 @@ package com.ridemotors.tgbot.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ridemotors.tgbot.constant.STATE_ADD_PRODUCT;
+import com.ridemotors.tgbot.constant.STATE_UPDATE_PRODUCT;
 import com.ridemotors.tgbot.dao.ProductDao;
 import com.ridemotors.tgbot.domain.ProductsReadable;
+import com.ridemotors.tgbot.exception.AddProductException;
 import com.ridemotors.tgbot.exception.FormatExcelException;
 import com.ridemotors.tgbot.model.Product;
 import com.ridemotors.tgbot.util.ExcelManager;
+import com.ridemotors.tgbot.util.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,25 +28,35 @@ public class ProductManager {
     @Autowired
     ProductDao productDao;
 
-    // Добавить поля в STATE_ADD_PRODUCT idFailed
-    public STATE_ADD_PRODUCT manageProducts(File file) {
-        STATE_ADD_PRODUCT answer = null;
+    private final Logger log = LoggerFactory.getLogger(ProductManager.class);
+
+    public File getFileProducts(Long rootCategory) {
+        List<Product> products = null;
+        return null;
+    }
+
+    public STATE_UPDATE_PRODUCT updateProducts(File file) {
+        STATE_UPDATE_PRODUCT answer = STATE_UPDATE_PRODUCT.SUCCESS;
         try {
             ProductsReadable productsReadable = excelManager.parseProducts(file);
             addProducts(productsReadable.getProductsAdd());
-            List<Long> idFailed = deleteProducts(productsReadable.getProductsDelete());
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (FormatExcelException e) {
+            List<Long> idListNotFound = deleteProducts(productsReadable.getProductsDelete());
+            if(idListNotFound.size()>0) {
+                answer = STATE_UPDATE_PRODUCT.WARNING;
+                answer.setIdListNotFound(idListNotFound);
+            }
+        } catch (FormatExcelException|AddProductException e) {
+            answer = STATE_UPDATE_PRODUCT.FAILED;
+            answer.setTextFailed(e.getMessage());
+        } catch (Exception e) {
+            log.error(e.getMessage());
             throw new RuntimeException(e);
         }
-        answer = STATE_ADD_PRODUCT.SUCCESS;
         return answer;
     }
-    // Изменить exception
-    private STATE_ADD_PRODUCT addProducts(List<HashMap<String, String>> productsAdd) {
-        STATE_ADD_PRODUCT state = STATE_ADD_PRODUCT.SUCCESS;
+
+    private void addProducts(List<HashMap<String, String>> productsAdd) throws AddProductException {
+        STATE_UPDATE_PRODUCT state = STATE_UPDATE_PRODUCT.SUCCESS;
         List<Product> products = new ArrayList<>();
         for(HashMap<String, String> product : productsAdd) {
             try {
@@ -52,7 +66,6 @@ public class ProductManager {
             }
         }
         productDao.saveAll(products);
-        return state;
     }
 
     private List<Long> deleteProducts(List<HashMap<String, String>> productsDelete) {
@@ -70,25 +83,37 @@ public class ProductManager {
         return idFailed;
     }
 
-    private Product createProduct(HashMap<String, String> productData) throws JsonProcessingException {
-        Product product = new Product();
-        product.setCategory(Long.valueOf(productData.get("id_category*")));
+    private Product createProduct(HashMap<String, String> productData) throws JsonProcessingException, AddProductException {
+        Long idCategory = Util.formatStringToLong(productData.get("id_category*"));
+        Long id = Util.formatStringToLong(productData.get("id*"));
+
+        Product product = id==0? new Product() : productDao.findById(id).isPresent() ? productDao.findById(id).get() : null;
+        if(product==null)
+            throw new AddProductException("Товар с таким id не найден " +  id);
+        product.setCategory(idCategory);
         product.setDescription(productData.get("Описание*"));
         product.setName(productData.get("Наименование*"));
-        product.setPrice(Long.valueOf(productData.get("Цена*")));
-        // Удаляем все обязательные и справочные столбцы
+        product.setPrice(productData.get("Цена*"));
+        // Удаляем все обязательные и справочные столбцы чтобы воспользоваться ObjectMapper
+        List<String> keysRemove = new ArrayList<>();
         for(Map.Entry<String, String> entry : productData.entrySet()) {
             String key = entry.getKey();
             if(key.contains("*"))
-                productData.remove(key);
+                keysRemove.add(key);
         }
-        // Все необязательные столбцы хранятся как json, чтобы товар с разными характеристиками
-        // мог хранится в одной таблице
-        ObjectMapper objectMapper = new ObjectMapper();
-        if(productData.size()>0) {
-            String characters = objectMapper.writeValueAsString(productData);
-            product.setCharacter(characters);
-        }
+        for(String key : keysRemove)
+            productData.remove(key);
+
+        // Убеждаемся что в таблице в поле character те же заголовки
+        // !!!!!!!!!!!!! Надо написать метод для получения одного продукта , а не вытаскивать все !!!!!!!!!!!!!!!!!!
+        List<Product> productsCategory = productDao.findByCategory(idCategory);
+        Map<String, String> map = Util.convertStringToMap(productsCategory.get(0).getCharacter());
+        Set<String> keySet = map.keySet();
+        if(!map.keySet().equals(productData.keySet()))
+            throw new AddProductException("Дополнительные поля добавляемого товара имеют " +
+                    "несовпадающий заголовок с товарами этой категории");
+
+        product.setCharacter(Util.convertMapToString(productData));
         return product;
     }
 }

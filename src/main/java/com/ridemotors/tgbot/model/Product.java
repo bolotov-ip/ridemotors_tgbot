@@ -18,7 +18,7 @@ public class Product {
 
     Long typeId;
 
-    Long price;
+    String price;
 
     String state = STATE_PRODUCT.READY.toString();
 
@@ -26,6 +26,8 @@ public class Product {
 
     Long category;
 
+    // Все необязательные столбцы хранятся как json, чтобы товар с разными характеристиками
+    // мог хранится в одной таблице
     String character;
 
     public Long getCategory() {
@@ -92,11 +94,11 @@ public class Product {
         this.typeId = typeId;
     }
 
-    public Long getPrice() {
+    public String getPrice() {
         return price;
     }
 
-    public void setPrice(Long price) {
+    public void setPrice(String price) {
         this.price = price;
     }
 }

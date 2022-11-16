@@ -17,6 +17,16 @@ public class BotConfig {
     @Value("${bot.owner}")
     private String ownerId;
 
+    @Value("${ridemotors.directory}")
+    private String directory;
+
+    public String getDirectory() {
+        return directory;
+    }
+
+    public void setDirectory(String directory) {
+        this.directory = directory;
+    }
 
     public String getOwnerId() {
         return ownerId;
