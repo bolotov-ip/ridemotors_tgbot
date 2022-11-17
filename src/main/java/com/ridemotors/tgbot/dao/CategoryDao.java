@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface CategoryDao extends JpaRepository<Category, Long> {
 
-    @Query("SELECT pc FROM product_category pc where pc.parent =:parent")
+    @Query("SELECT pc FROM product_category pc where pc.parent =:parent order by pc.id")
     public List<Category> getCategoryByParent(@Param("parent") Long parent);
 
     default public void deleteById(Long categoryId) {

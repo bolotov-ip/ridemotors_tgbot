@@ -35,6 +35,13 @@ public class ProductManager {
         return null;
     }
 
+    public List<Product> getCategoryProducts(Long id) {
+        List<Product> products = productDao.findByCategory(id);
+        if(products==null)
+            return new ArrayList<>();
+        return products;
+    }
+
     public STATE_UPDATE_PRODUCT updateProducts(File file) {
         STATE_UPDATE_PRODUCT answer = STATE_UPDATE_PRODUCT.SUCCESS;
         try {

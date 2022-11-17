@@ -17,6 +17,7 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageTe
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import java.io.*;
@@ -38,6 +39,35 @@ public class Event {
     protected BotConfig botConfig;
 
     protected final Logger log = LoggerFactory.getLogger(TelegramBot.class);
+
+    public AnswerBot addNavigateKeyboard(AnswerBot answerBot, String callback, int numberPage, int countPage) {
+
+        ReplyKeyboard replyKeyboard = answerBot.getMessage() instanceof SendMessage ?
+                ((SendMessage) answerBot.getMessage()).getReplyMarkup() :
+                ((EditMessageText) answerBot.getMessage()).getReplyMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = ((InlineKeyboardMarkup) replyKeyboard).getKeyboard();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        if(numberPage>1) {
+            InlineKeyboardButton buttonPrev = new InlineKeyboardButton();
+            buttonPrev.setText("<");
+            buttonPrev.setCallbackData(callback + "_" + (numberPage - 1));
+            rowInLine.add(buttonPrev);
+        }
+        InlineKeyboardButton btnInfo = new InlineKeyboardButton();
+        btnInfo.setText(numberPage + " - " + countPage);
+        btnInfo.setCallbackData("NO_CALLBACK");
+        rowInLine.add(btnInfo);
+        if(numberPage<countPage) {
+            InlineKeyboardButton buttonNext = new InlineKeyboardButton();
+            buttonNext.setText(">");
+            buttonNext.setCallbackData(callback + "_" + (numberPage + 1));
+            rowInLine.add(buttonNext);
+        }
+        rowsInLine.add(rowInLine);
+        ((InlineKeyboardMarkup) replyKeyboard).setKeyboard(rowsInLine);
+        replyMarkup((InlineKeyboardMarkup) replyKeyboard, answerBot.getMessage());
+        return answerBot;
+    }
 
     public AnswerBot commandNotSupport(Update update) {
         SendMessage send = new SendMessage(String.valueOf(update.getMessage().getChatId()), "Команда не поддерживается");

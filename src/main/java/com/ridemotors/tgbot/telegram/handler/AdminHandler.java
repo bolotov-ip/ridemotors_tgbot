@@ -57,6 +57,16 @@ public class AdminHandler implements Handler{
             else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_FILE_PRODUCTS.toString())) {
                 return eventAdmin.loadProducts(update);
             }
+            else if(callbackData.equals(BUTTONS.BTN_ADMIN_CATEGORY.toString())) {
+                String callback = callbackData.equals(BUTTONS.BTN_ADMIN_CATEGORY.toString()) ? "0_1" : callbackData;
+                String[] data = callback.split("_");
+                return eventAdmin.category(update, Long.valueOf(data[0]), Integer.valueOf(data[1]));
+            }
+            STATE_BOT state = stateDao.getState(update.getCallbackQuery().getMessage().getChatId());
+            if(state.equals(STATE_BOT.ADMIN_CATEGORY)){
+                String[] data = callbackData.split("_");
+                return eventAdmin.category(update, Long.valueOf(data[0]), Integer.valueOf(data[1]));
+            }
         }
         else if(update.getMessage().hasDocument()) {
             STATE_BOT state = stateDao.getState(update.getMessage().getChatId());

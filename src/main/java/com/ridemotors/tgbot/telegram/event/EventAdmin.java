@@ -1,6 +1,9 @@
 package com.ridemotors.tgbot.telegram.event;
 
 import com.ridemotors.tgbot.constant.STATE_UPDATE_PRODUCT;
+import com.ridemotors.tgbot.model.Category;
+import com.ridemotors.tgbot.model.Product;
+import com.ridemotors.tgbot.service.CategoryManager;
 import com.ridemotors.tgbot.service.ProductManager;
 import com.ridemotors.tgbot.telegram.constant.BUTTONS;
 import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
@@ -26,6 +29,9 @@ public class EventAdmin extends Event {
     @Autowired
     ProductManager productManager;
 
+    @Autowired
+    CategoryManager categoryManager;
+
     public AnswerBot start(Update update) {
         List<CallbackButton> listBtn = new ArrayList<>();
         listBtn.add(new CallbackButton(BUTTONS.BTN_ADMIN_CATEGORY));
@@ -44,6 +50,48 @@ public class EventAdmin extends Event {
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
 
         return getAnswer(update, STATE_BOT.ADMIN_PRODUCTS, listBtn, 1);
+    }
+
+    public AnswerBot category(Update update, Long idCategory, int numberPage) {
+        List<CallbackButton> listBtn = new ArrayList<>();
+        List<Category> categories = categoryManager.getChildren(idCategory);
+        int positionVisible = 5;
+        int countPage = 1;
+        if(categories.size()>0) {
+            countPage = (int) Math.ceil(categories.size()/(double)positionVisible);
+            int startPosition = (positionVisible *(numberPage-1));
+            int endPosition = Math.min(startPosition + positionVisible, categories.size());
+            for(int i = startPosition; i<endPosition; i++) {
+                CallbackButton btn = new CallbackButton(categories.get(i).getName());
+                btn.setCallbackData(String.valueOf(categories.get(i).getId()) + "_1");
+                listBtn.add(btn);
+            }
+        }
+        // В категории может быть либо другая категория либо товар, одновременно нельзя
+        List<Product> products = productManager.getCategoryProducts(idCategory);
+        if(products.size()>0) {
+            countPage = (int) Math.ceil(products.size()/(double)positionVisible);
+            int startPosition = (positionVisible *(numberPage-1));
+            int endPosition = Math.min(startPosition + positionVisible, products.size());
+            for(int i = startPosition; i<endPosition; i++) {
+                CallbackButton btn = new CallbackButton(products.get(i).getName());
+                btn.setCallbackData(String.valueOf(products.get(i).getId()) + "_1");
+                listBtn.add(btn);
+            }
+        }
+        listBtn.add(new CallbackButton(BUTTONS.BTN_SEPARATOR));
+        if(products.size()==0)
+            listBtn.add(new CallbackButton(BUTTONS.BTN_ADMIN_ADD_CATEGORY));
+        listBtn.add(new CallbackButton(BUTTONS.BTN_ADMIN_DELETE_CATEGORY));
+        listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
+        AnswerBot answerBot = getAnswer(update, STATE_BOT.ADMIN_CATEGORY, listBtn, 1);
+        if(idCategory == 0L)
+            answerBot.setText(answerBot.getText() + "Корневая категория");
+        else
+            answerBot.setText(answerBot.getText() + categoryManager.getCategoryName(idCategory));
+        answerBot.setText(answerBot.getText() + "\nИндентификатор: " + idCategory);
+        addNavigateKeyboard(answerBot, String.valueOf(idCategory), numberPage, countPage);
+        return answerBot;
     }
 
     public AnswerBot loadProducts(Update update) {
