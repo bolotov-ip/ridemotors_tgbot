@@ -11,7 +11,12 @@ public enum STATE_BOT {
     ADMIN_LOAD_PRODUCTS,
     ADMIN_LOAD_SUCCESS,
     ADMIN_LOAD_WARNING,
-    ADMIN_LOAD_FAILED;
+    ADMIN_LOAD_FAILED,
+    ADMIN_ADD_CATEGORY,
+    ADMIN_ADD_CATEGORY_SUCCESS,
+    ADMIN_DELETE_CATEGORY,
+    ADMIN_DELETE_CATEGORY_SUCCESS,
+    VIEW_PRODUCT;
 
     private static Map<String, String> textMessage = new HashMap<String, String>();
     static {
@@ -24,6 +29,11 @@ public enum STATE_BOT {
         textMessage.put("ADMIN_LOAD_WARNING", "Загрузка прошла но возникли следующие предупреждения:\n");
         textMessage.put("ADMIN_LOAD_FAILED", "Загрузка не удалась по причине:\n");
         textMessage.put("ADMIN_LIST_PRODUCTS", "Товары в категории: ");
+        textMessage.put("VIEW_PRODUCT", "Информация о товаре\n");
+        textMessage.put("ADMIN_ADD_CATEGORY", "Введите наименование категории\n");
+        textMessage.put("ADMIN_ADD_CATEGORY_SUCCESS", "Категория добавлена успешно\n");
+        textMessage.put("ADMIN_DELETE_CATEGORY", "Вы точно хотите удалить категорию\n");
+        textMessage.put("ADMIN_DELETE_CATEGORY_SUCCESS", " успешно удалена\n");
     }
 
     public String getTextMessage() {

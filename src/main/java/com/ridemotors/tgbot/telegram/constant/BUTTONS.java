@@ -12,7 +12,10 @@ public enum BUTTONS {
     BTN_ADMIN_DOWNLOAD_CATEGORY_PRODUCTS("Скачать товары по категории"),
     BTN_ADMIN_DOWNLOAD_RESOURCES("Скачать файлы image, video"),
     BTN_ADMIN_ADD_CATEGORY("Добавить категорию"),
-    BTN_ADMIN_DELETE_CATEGORY("Удалить категорию");
+    BTN_ADMIN_DELETE_CATEGORY("Удалить категорию"),
+    BTN_ADMIN_REMOVE_CATEGORY("Удалить"),
+    BTN_VIDEO("Видео"),
+    BTN_PHOTO("Фото");
 
     private String text;
 

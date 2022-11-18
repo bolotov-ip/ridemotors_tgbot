@@ -30,4 +30,18 @@ public interface StateDao extends JpaRepository<StateBot, Long> {
         else
             return STATE_BOT.ADMIN_START;
     }
+
+    default void setCategory(Long category, Long chatId) {
+        Optional<StateBot> state = findById(chatId);
+        state.get().setCategory(category);
+        save(state.get());
+    }
+
+    default Long getCategory(Long chatId) {
+        Optional<StateBot> state = findById(chatId);
+        if(state.isPresent())
+            return state.get().getCategory();
+        else
+            return -1L;
+    }
 }

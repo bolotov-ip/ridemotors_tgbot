@@ -1,11 +1,17 @@
 package com.ridemotors.tgbot.telegram.event;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ridemotors.tgbot.config.BotConfig;
 import com.ridemotors.tgbot.dao.StateDao;
+import com.ridemotors.tgbot.model.Button;
+import com.ridemotors.tgbot.model.Product;
+import com.ridemotors.tgbot.service.ProductManager;
 import com.ridemotors.tgbot.telegram.TelegramBot;
+import com.ridemotors.tgbot.telegram.constant.BUTTONS;
 import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
 import com.ridemotors.tgbot.telegram.domain.AnswerBot;
 import com.ridemotors.tgbot.telegram.domain.CallbackButton;
+import com.ridemotors.tgbot.util.Util;
 import com.vdurmont.emoji.EmojiParser;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -28,7 +34,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Event {
 
@@ -38,7 +46,49 @@ public class Event {
     @Autowired
     protected BotConfig botConfig;
 
+    @Autowired
+    ProductManager productManager;
+
     protected final Logger log = LoggerFactory.getLogger(TelegramBot.class);
+
+    public AnswerBot viewProduct(Update update, Long idProduct) {
+        Product product = productManager.findProductById(idProduct);
+        String descriptionProduct = "Наименование: " + product.getName() +"\n\n"+product.getDescription() + "\n\n";
+        descriptionProduct+="Цена: " + product.getPrice();
+        Map<String,String> mapCharacters = null;
+        try {
+            mapCharacters = product.getCharacter().length()>0? Util.convertStringToMap(product.getCharacter()):new HashMap<>();
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+            throw new RuntimeException(e);
+        }
+        for(Map.Entry<String, String> entry : mapCharacters.entrySet()){
+            descriptionProduct+="\n" +entry.getKey() +": " + entry.getValue();
+        }
+        descriptionProduct+="\n";
+        List<CallbackButton> listBtn = new ArrayList<>();
+        listBtn.add(new CallbackButton(BUTTONS.BTN_PHOTO));
+        listBtn.add(new CallbackButton(BUTTONS.BTN_VIDEO));
+        listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
+        AnswerBot answerBot = getAnswer(update, STATE_BOT.VIEW_PRODUCT, listBtn, 2);
+        answerBot.setText(answerBot.getText() + descriptionProduct);
+        return answerBot;
+    }
+
+    public int fillButtonPage(List<CallbackButton> buttons, List<? extends Button> items, String prefix, int pageSize, int numberPage) {
+        int countPage = 1;
+        if(items.size()>0) {
+            countPage = (int) Math.ceil(items.size()/(double)pageSize);
+            int startPosition = (pageSize *(numberPage-1));
+            int endPosition = Math.min(startPosition + pageSize, items.size());
+            for(int i = startPosition; i<endPosition; i++) {
+                CallbackButton btn = new CallbackButton(items.get(i).getName());
+                btn.setCallbackData(prefix + "_" + items.get(i).getId() + "_1");
+                buttons.add(btn);
+            }
+        }
+        return countPage;
+    }
 
     public AnswerBot addNavigateKeyboard(AnswerBot answerBot, String callback, int numberPage, int countPage) {
 
@@ -55,7 +105,7 @@ public class Event {
         }
         InlineKeyboardButton btnInfo = new InlineKeyboardButton();
         btnInfo.setText(numberPage + " - " + countPage);
-        btnInfo.setCallbackData("NO_CALLBACK");
+        btnInfo.setCallbackData(callback + "_" + numberPage);
         rowInLine.add(btnInfo);
         if(numberPage<countPage) {
             InlineKeyboardButton buttonNext = new InlineKeyboardButton();

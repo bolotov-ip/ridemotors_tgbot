@@ -30,6 +30,14 @@ public class AnswerBot {
 
     public void setMessage(BotApiMethod<?> answer) {
         this.message = answer;
+        if(message != null) {
+            if(message instanceof EditMessageText){
+                ((EditMessageText)message).enableHtml(true);
+            }
+            else if(message instanceof SendMessage) {
+                ((SendMessage)message).enableHtml(true);
+            }
+        }
     }
 
     public boolean hasMessage() {

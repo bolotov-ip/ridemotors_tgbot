@@ -3,6 +3,7 @@ package com.ridemotors.tgbot.service;
 import com.ridemotors.tgbot.constant.STATE_UPDATE_CATEGORY;
 import com.ridemotors.tgbot.dao.CategoryDao;
 import com.ridemotors.tgbot.model.Category;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,7 +40,18 @@ public class CategoryManager {
         return STATE_UPDATE_CATEGORY.SUCCESS;
     }
 
-    public STATE_UPDATE_CATEGORY deleteCategory(Long id) {
-        return STATE_UPDATE_CATEGORY.SUCCESS;
+    public void deleteCategory(Long id) {
+        Optional<Category> categoryOptional = categoryDao.findById(id);
+        if(categoryOptional.isPresent()){
+            Category category = categoryOptional.get();
+            categoryDao.delete(category);
+        }
+    }
+
+    public void createCategory(Long parentId, String name) {
+        Category category = new Category();
+        category.setParent(parentId);
+        category.setName(name);
+        categoryDao.save(category);
     }
 }

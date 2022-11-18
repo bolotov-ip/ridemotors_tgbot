@@ -42,6 +42,13 @@ public class ProductManager {
         return products;
     }
 
+    public Product findProductById(Long id) {
+        Optional<Product> optionalProduct = productDao.findById(id);
+        if(optionalProduct.isPresent())
+            return optionalProduct.get();
+        return null;
+    }
+
     public STATE_UPDATE_PRODUCT updateProducts(File file) {
         STATE_UPDATE_PRODUCT answer = STATE_UPDATE_PRODUCT.SUCCESS;
         try {

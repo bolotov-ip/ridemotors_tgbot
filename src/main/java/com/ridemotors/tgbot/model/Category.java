@@ -3,7 +3,7 @@ package com.ridemotors.tgbot.model;
 import javax.persistence.*;
 
 @Entity(name = "product_category")
-public class Category {
+public class Category implements Button{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")

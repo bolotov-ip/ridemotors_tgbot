@@ -5,7 +5,7 @@ import com.ridemotors.tgbot.constant.STATE_PRODUCT;
 import javax.persistence.*;
 
 @Entity(name = "product")
-public class Product {
+public class Product implements Button{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

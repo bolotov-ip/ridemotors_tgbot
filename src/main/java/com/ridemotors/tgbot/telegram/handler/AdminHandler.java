@@ -44,10 +44,11 @@ public class AdminHandler implements Handler{
             if(textMessage.equals(COMMANDS.COMMAND_START.getText())) {
                 return eventAdmin.start(update);
             }
-            else {
-                return eventAdmin.commandNotSupport(update);
+            STATE_BOT state = stateDao.getState(update.getMessage().getChatId());
+            if(state.equals(STATE_BOT.ADMIN_ADD_CATEGORY)) {
+                return eventAdmin.createCategory(update);
             }
-
+            return eventAdmin.commandNotSupport(update);
         } else if(update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
 
@@ -58,14 +59,27 @@ public class AdminHandler implements Handler{
                 return eventAdmin.loadProducts(update);
             }
             else if(callbackData.equals(BUTTONS.BTN_ADMIN_CATEGORY.toString())) {
-                String callback = callbackData.equals(BUTTONS.BTN_ADMIN_CATEGORY.toString()) ? "0_1" : callbackData;
-                String[] data = callback.split("_");
-                return eventAdmin.category(update, Long.valueOf(data[0]), Integer.valueOf(data[1]));
+                return eventAdmin.category(update, 0L, 1);
             }
+            else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_CATEGORY.toString())) {
+                return eventAdmin.addCategory(update);
+            }
+            else if(callbackData.equals(BUTTONS.BTN_ADMIN_DELETE_CATEGORY.toString())) {
+                return eventAdmin.deleteCategory(update);
+            }
+            else if(callbackData.equals(BUTTONS.BTN_ADMIN_REMOVE_CATEGORY.toString())) {
+                return eventAdmin.removeCategory(update);
+            }
+
             STATE_BOT state = stateDao.getState(update.getCallbackQuery().getMessage().getChatId());
             if(state.equals(STATE_BOT.ADMIN_CATEGORY)){
                 String[] data = callbackData.split("_");
-                return eventAdmin.category(update, Long.valueOf(data[0]), Integer.valueOf(data[1]));
+                if(data.length==3) {
+                    if(data[0].equals("c"))
+                        return eventAdmin.category(update, Long.valueOf(data[1]), Integer.valueOf(data[2]));
+                    if(data[0].equals("p"))
+                        return eventAdmin.viewProduct(update, Long.valueOf(data[1]));
+                }
             }
         }
         else if(update.getMessage().hasDocument()) {
@@ -73,9 +87,6 @@ public class AdminHandler implements Handler{
             if(state.equals(STATE_BOT.ADMIN_LOAD_PRODUCTS))
                 return eventAdmin.receiveProducts(update);
         }
-        else {
-            return eventAdmin.commandNotSupport(update);
-        }
-        return null;
+        return eventAdmin.commandNotSupport(update);
     }
 }
