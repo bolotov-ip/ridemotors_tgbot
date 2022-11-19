@@ -40,10 +40,15 @@ public class CategoryManager {
         return STATE_UPDATE_CATEGORY.SUCCESS;
     }
 
-    public void deleteCategory(Long id) {
+    public void deleteCategory(Long id, ProductManager productManager) {
         Optional<Category> categoryOptional = categoryDao.findById(id);
         if(categoryOptional.isPresent()){
             Category category = categoryOptional.get();
+            List<Category> childrenCategories = getChildren(category.getId());
+            for(Category childCategory : childrenCategories) {
+                deleteCategory(childCategory.getId(), productManager);
+            }
+            productManager.deleteProductsByCategory(category.getId());
             categoryDao.delete(category);
         }
     }

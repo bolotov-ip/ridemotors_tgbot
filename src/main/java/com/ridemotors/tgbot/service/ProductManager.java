@@ -49,6 +49,11 @@ public class ProductManager {
         return null;
     }
 
+    public void deleteProductsByCategory(Long idCategory) {
+       List<Product> products = productDao.findByCategory(idCategory);
+       productDao.deleteAll(products);
+    }
+
     public STATE_UPDATE_PRODUCT updateProducts(File file) {
         STATE_UPDATE_PRODUCT answer = STATE_UPDATE_PRODUCT.SUCCESS;
         try {

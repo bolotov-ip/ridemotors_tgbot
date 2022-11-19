@@ -11,6 +11,7 @@ import com.ridemotors.tgbot.telegram.constant.BUTTONS;
 import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
 import com.ridemotors.tgbot.telegram.domain.AnswerBot;
 import com.ridemotors.tgbot.telegram.domain.CallbackButton;
+import com.ridemotors.tgbot.util.FileManager;
 import com.ridemotors.tgbot.util.Util;
 import com.vdurmont.emoji.EmojiParser;
 import org.json.JSONObject;
@@ -48,6 +49,9 @@ public class Event {
 
     @Autowired
     ProductManager productManager;
+
+    @Autowired
+    FileManager fileManager;
 
     protected final Logger log = LoggerFactory.getLogger(TelegramBot.class);
 

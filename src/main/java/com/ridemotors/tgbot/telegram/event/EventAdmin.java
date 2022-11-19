@@ -110,17 +110,15 @@ public class EventAdmin extends Event {
     public AnswerBot receiveProducts(Update update) {
         String fileName = update.getMessage().getDocument().getFileName();
         String fileId = update.getMessage().getDocument().getFileId();
-        String catalog= botConfig.getDirectory() + "/temp/";
+        String catalog= fileManager.getPathTemp();
         String pathFile = "";
         try {
-            Util.createDirectory(catalog);
             pathFile = uploadFile(fileName, fileId, catalog);
         } catch (IOException e) {
             log.error(e.getMessage());
             throw new RuntimeException();
         }
         File excel = new File(pathFile);
-        System.out.println(excel.toPath().toAbsolutePath());
         STATE_UPDATE_PRODUCT state = productManager.updateProducts(excel);
         Util.clearDirectory(catalog);
 
@@ -164,7 +162,7 @@ public class EventAdmin extends Event {
     public AnswerBot removeCategory(Update update) {
         Long id = stateDao.getCategory(update.getCallbackQuery().getMessage().getChatId());
         String name = categoryManager.getCategoryName(id);
-        categoryManager.deleteCategory(id);
+        categoryManager.deleteCategory(id, productManager);
         AnswerBot answerBot = getAnswer(update, STATE_BOT.ADMIN_DELETE_CATEGORY_SUCCESS, null, 1);
         answerBot.setText(name + answerBot.getText());
         return answerBot;
