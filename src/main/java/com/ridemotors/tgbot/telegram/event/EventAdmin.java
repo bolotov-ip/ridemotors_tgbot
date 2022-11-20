@@ -1,29 +1,25 @@
 package com.ridemotors.tgbot.telegram.event;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ridemotors.tgbot.constant.STATE_UPDATE_PRODUCT;
+import com.ridemotors.tgbot.constant.STATE_UPDATE_RESOURCES;
 import com.ridemotors.tgbot.model.Category;
 import com.ridemotors.tgbot.model.Product;
 import com.ridemotors.tgbot.service.CategoryManager;
-import com.ridemotors.tgbot.service.ProductManager;
+import com.ridemotors.tgbot.telegram.TelegramBot;
 import com.ridemotors.tgbot.telegram.constant.BUTTONS;
 import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
 import com.ridemotors.tgbot.telegram.domain.AnswerBot;
 import com.ridemotors.tgbot.telegram.domain.CallbackButton;
 import com.ridemotors.tgbot.util.Util;
-import org.checkerframework.checker.units.qual.A;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Component
 public class EventAdmin extends Event {
@@ -39,13 +35,58 @@ public class EventAdmin extends Event {
         return getAnswer(update, STATE_BOT.ADMIN_START, listBtn, 1);
     }
 
-    public AnswerBot addCategory(Update update) {
+    public AnswerBot addResourceFiles(Update update) {
+        List<CallbackButton> listBtn = new ArrayList<>();
+        listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
+
+        return getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES, listBtn, 1);
+    }
+
+    public AnswerBot downloadResourceFiles(Update update, TelegramBot bot) {
+        List<CallbackButton> listBtn = new ArrayList<>();
+        listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
+        String fileName = update.getMessage().getDocument().getFileName();
+        String fileId = update.getMessage().getDocument().getFileId();
+        String catalog= fileManager.getPathTemp();
+        String pathFile = "";
+        try {
+            pathFile = uploadFile(fileName, fileId, catalog);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new RuntimeException();
+        }
+        String finalPathFile = pathFile;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    STATE_UPDATE_RESOURCES state = fileManager.extractFile(finalPathFile);
+                    if(state.equals(STATE_UPDATE_RESOURCES.SUCCESS)) {
+                        AnswerBot answerBot =  getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES_SUCCESS, listBtn, 1);
+                        bot.execute(answerBot.getMessage());
+                    }
+                    else if(state.equals(STATE_UPDATE_RESOURCES.FAILED)){
+                        AnswerBot answerBot =  getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES_SUCCESS, listBtn, 1);
+                        bot.execute(answerBot.getMessage());
+                    }
+                    Util.clearDirectory(catalog);
+                }
+                catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+        return getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES_PROCESS, listBtn, 1);
+    }
+
+    public AnswerBot inputNameCategory(Update update) {
         List<CallbackButton> listBtn = new ArrayList<>();
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
         return getAnswer(update, STATE_BOT.ADMIN_ADD_CATEGORY, listBtn, 1);
     }
 
-    public AnswerBot deleteCategory(Update update) {
+    public AnswerBot confirmDeleteCategory(Update update) {
         List<CallbackButton> listBtn = new ArrayList<>();
         listBtn.add(new CallbackButton(BUTTONS.BTN_ADMIN_REMOVE_CATEGORY));
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
@@ -101,13 +142,13 @@ public class EventAdmin extends Event {
         return answerBot;
     }
 
-    public AnswerBot loadProducts(Update update) {
+    public AnswerBot addProducts(Update update) {
         List<CallbackButton> listBtn = new ArrayList<>();
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
         return getAnswer(update, STATE_BOT.ADMIN_LOAD_PRODUCTS, listBtn, 1);
     }
 
-    public AnswerBot receiveProducts(Update update) {
+    public AnswerBot downloadProductFile(Update update) {
         String fileName = update.getMessage().getDocument().getFileName();
         String fileId = update.getMessage().getDocument().getFileId();
         String catalog= fileManager.getPathTemp();
@@ -159,7 +200,7 @@ public class EventAdmin extends Event {
     }
 
 
-    public AnswerBot removeCategory(Update update) {
+    public AnswerBot deleteCategory(Update update) {
         Long id = stateDao.getCategory(update.getCallbackQuery().getMessage().getChatId());
         String name = categoryManager.getCategoryName(id);
         categoryManager.deleteCategory(id, productManager);

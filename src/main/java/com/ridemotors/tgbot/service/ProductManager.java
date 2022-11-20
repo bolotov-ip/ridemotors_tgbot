@@ -1,14 +1,12 @@
 package com.ridemotors.tgbot.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ridemotors.tgbot.constant.STATE_UPDATE_PRODUCT;
 import com.ridemotors.tgbot.dao.ProductDao;
 import com.ridemotors.tgbot.domain.ProductsReadable;
 import com.ridemotors.tgbot.exception.AddProductException;
 import com.ridemotors.tgbot.exception.FormatExcelException;
 import com.ridemotors.tgbot.model.Product;
-import com.ridemotors.tgbot.util.ExcelManager;
 import com.ridemotors.tgbot.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 @Service

@@ -56,19 +56,22 @@ public class AdminHandler implements Handler{
                 return eventAdmin.products(update);
             }
             else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_FILE_PRODUCTS.toString())) {
-                return eventAdmin.loadProducts(update);
+                return eventAdmin.addProducts(update);
             }
             else if(callbackData.equals(BUTTONS.BTN_ADMIN_CATEGORY.toString())) {
                 return eventAdmin.category(update, 0L, 1);
             }
             else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_CATEGORY.toString())) {
-                return eventAdmin.addCategory(update);
+                return eventAdmin.inputNameCategory(update);
             }
             else if(callbackData.equals(BUTTONS.BTN_ADMIN_DELETE_CATEGORY.toString())) {
-                return eventAdmin.deleteCategory(update);
+                return eventAdmin.confirmDeleteCategory(update);
             }
             else if(callbackData.equals(BUTTONS.BTN_ADMIN_REMOVE_CATEGORY.toString())) {
-                return eventAdmin.removeCategory(update);
+                return eventAdmin.deleteCategory(update);
+            }
+            else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_FILE_RESOURCES.toString())) {
+                return eventAdmin.addResourceFiles(update);
             }
 
             STATE_BOT state = stateDao.getState(update.getCallbackQuery().getMessage().getChatId());
@@ -85,7 +88,9 @@ public class AdminHandler implements Handler{
         else if(update.getMessage().hasDocument()) {
             STATE_BOT state = stateDao.getState(update.getMessage().getChatId());
             if(state.equals(STATE_BOT.ADMIN_LOAD_PRODUCTS))
-                return eventAdmin.receiveProducts(update);
+                return eventAdmin.downloadProductFile(update);
+            if(state.equals(STATE_BOT.ADMIN_ADD_FILES_RESOURCES))
+                return eventAdmin.downloadResourceFiles(update, bot);
         }
         return eventAdmin.commandNotSupport(update);
     }

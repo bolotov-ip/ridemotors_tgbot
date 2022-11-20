@@ -39,6 +39,17 @@ public class Util {
             myFile.delete();
     }
 
+    public static void recursiveDelete(File file) {
+        if (!file.exists())
+            return;
+        if (file.isDirectory()) {
+            for (File f : file.listFiles()) {
+                recursiveDelete(f);
+            }
+        }
+        file.delete();
+    }
+
     public static Long formatStringToLong(String number) {
         if(number==null || number.isBlank())
             return 0L;

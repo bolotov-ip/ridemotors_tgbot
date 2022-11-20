@@ -1,6 +1,9 @@
-package com.ridemotors.tgbot.util;
+package com.ridemotors.tgbot.service;
 
 import com.ridemotors.tgbot.config.BotConfig;
+import com.ridemotors.tgbot.constant.STATE_UPDATE_RESOURCES;
+import com.ridemotors.tgbot.telegram.TelegramBot;
+import com.ridemotors.tgbot.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,10 +47,11 @@ public class FileManager {
         }
     }
 
-    public void extractFile(String pathFile) {
+    public STATE_UPDATE_RESOURCES extractFile(String pathFile) {
+        STATE_UPDATE_RESOURCES answer = STATE_UPDATE_RESOURCES.SUCCESS;
         try (var file = new ZipFile(pathFile)) {
             var entries = file.entries();
-            var uncompressedDirectory = new File(file.getName()).getParent() + File.separator;
+            var uncompressedDirectory = getPathResources();
             while (entries.hasMoreElements()) {
                 var entry = entries.nextElement();
                 if (entry.isDirectory()) {
@@ -56,24 +60,29 @@ public class FileManager {
                     processFile(file, uncompressedDirectory, entry);
                 }
             }
-            new File(pathFile).delete();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error(e.getMessage());
+            answer = STATE_UPDATE_RESOURCES.FAILED;
         }
+        return answer;
     }
 
     private void processDirectory(String uncompressedDirectory, ZipEntry entry) {
         var newDirectory = uncompressedDirectory + entry.getName();
+        var directory = new File(newDirectory);
+        if(directory.exists())
+            Util.recursiveDelete(directory);
         log.info("Creating Directory: {}", newDirectory);
         createDirectory(newDirectory);
     }
 
-    private void processFile(ZipFile file, String uncompressedDirectory, ZipEntry entry) throws IOException {
+    private void processFile(ZipFile file, String uncompressedRootDirectory, ZipEntry entry) throws IOException {
         try (
                 var is = file.getInputStream(entry);
                 var bis = new BufferedInputStream(is)
         ) {
-            var uncompressedFileName = uncompressedDirectory + entry.getName();
+            var uncompressedFileName = uncompressedRootDirectory + entry.getName();
+            createDirectory(getUncompressedDirectory(uncompressedRootDirectory, entry.getName()));
             try (
                 var os = new FileOutputStream(uncompressedFileName);
                 var bos = new BufferedOutputStream(os)
@@ -84,5 +93,18 @@ public class FileManager {
             }
         }
         log.info("Written: {}", entry.getName());
+    }
+
+    private String getUncompressedDirectory(String uncompressedDirectory, String name) {
+        if(name.contains(".")) {
+            if(name.contains("/")) {
+                name = name.substring(0, name.lastIndexOf("/"));
+            }
+            else if(name.contains("\\")) {
+                name = name.substring(0, name.lastIndexOf("\\"));
+            }
+        }
+        String result = uncompressedDirectory + name;
+        return result;
     }
 }
