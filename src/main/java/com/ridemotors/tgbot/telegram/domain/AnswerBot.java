@@ -2,12 +2,22 @@ package com.ridemotors.tgbot.telegram.domain;
 
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 
 public class AnswerBot {
     BotApiMethod<?> message;
     SendDocument document;
+    SendMediaGroup mediaGroup;
+
+    public SendMediaGroup getMediaGroup() {
+        return mediaGroup;
+    }
+
+    public void setMediaGroup(SendMediaGroup mediaGroup) {
+        this.mediaGroup = mediaGroup;
+    }
 
     public SendDocument getDocument() {
         return document;
@@ -48,6 +58,12 @@ public class AnswerBot {
 
     public boolean hasDocument() {
         if(document !=null)
+            return true;
+        return false;
+    }
+
+    public boolean hasMedia() {
+        if(mediaGroup !=null)
             return true;
         return false;
     }

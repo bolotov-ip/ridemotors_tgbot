@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -28,26 +27,6 @@ public class Util {
             return "";
         String str = objectMapper.writeValueAsString(map);
         return str;
-    }
-
-    public static void createDirectory(String path) throws IOException {
-       Files.createDirectories(Paths.get(path));
-    }
-
-    public static void clearDirectory(String path) {
-        for (File myFile : new File(path).listFiles())
-            myFile.delete();
-    }
-
-    public static void recursiveDelete(File file) {
-        if (!file.exists())
-            return;
-        if (file.isDirectory()) {
-            for (File f : file.listFiles()) {
-                recursiveDelete(f);
-            }
-        }
-        file.delete();
     }
 
     public static Long formatStringToLong(String number) {

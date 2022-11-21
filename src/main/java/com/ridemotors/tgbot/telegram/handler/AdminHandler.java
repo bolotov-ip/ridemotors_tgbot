@@ -84,6 +84,15 @@ public class AdminHandler implements Handler{
                         return eventAdmin.viewProduct(update, Long.valueOf(data[1]));
                 }
             }
+            if(state.equals(STATE_BOT.VIEW_PRODUCT)){
+                String[] data = callbackData.split("_");
+                if(data.length==2) {
+                    if(data[0].equals("photo"))
+                        return eventAdmin.sendImages(update, Long.valueOf(data[1]));
+                    if(data[0].equals("video"))
+                        return eventAdmin.sendVideos(update, Long.valueOf(data[1]));
+                }
+            }
         }
         else if(update.getMessage().hasDocument()) {
             STATE_BOT state = stateDao.getState(update.getMessage().getChatId());

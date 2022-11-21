@@ -11,7 +11,7 @@ import com.ridemotors.tgbot.telegram.constant.BUTTONS;
 import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
 import com.ridemotors.tgbot.telegram.domain.AnswerBot;
 import com.ridemotors.tgbot.telegram.domain.CallbackButton;
-import com.ridemotors.tgbot.service.FileManager;
+import com.ridemotors.tgbot.service.ResourceManager;
 import com.ridemotors.tgbot.util.Util;
 import com.vdurmont.emoji.EmojiParser;
 import org.json.JSONObject;
@@ -19,10 +19,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaPhoto;
+import org.telegram.telegrambots.meta.api.objects.media.InputMediaVideo;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -51,9 +57,41 @@ public class Event {
     ProductManager productManager;
 
     @Autowired
-    FileManager fileManager;
+    ResourceManager resourceManager;
 
     protected final Logger log = LoggerFactory.getLogger(TelegramBot.class);
+
+    public AnswerBot sendImages(Update update, Long idProduct) {
+        List<File> images = resourceManager.getImages(idProduct);
+        List<InputMedia> medias = new ArrayList<>();
+        for(File image : images) {
+            InputMediaPhoto mediaPhoto = new InputMediaPhoto();
+            mediaPhoto.setMedia(image, image.getName());
+            medias.add(mediaPhoto);
+        }
+        AnswerBot answerBot = new AnswerBot();
+        SendMediaGroup mediaGroup = new SendMediaGroup();
+        mediaGroup.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
+        mediaGroup.setMedias(medias);
+        answerBot.setMediaGroup(mediaGroup);
+        return answerBot;
+    }
+
+    public AnswerBot sendVideos(Update update, Long idProduct) {
+        List<File> videos = resourceManager.getVideos(idProduct);
+        List<InputMedia> medias = new ArrayList<>();
+        for(File video : videos) {
+            InputMediaVideo mediaVideo = new InputMediaVideo();
+            mediaVideo.setMedia(video, video.getName());
+            medias.add(mediaVideo);
+        }
+        AnswerBot answerBot = new AnswerBot();
+        SendMediaGroup mediaGroup = new SendMediaGroup();
+        mediaGroup.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
+        mediaGroup.setMedias(medias);
+        answerBot.setMediaGroup(mediaGroup);
+        return answerBot;
+    }
 
     public AnswerBot viewProduct(Update update, Long idProduct) {
         Product product = productManager.findProductById(idProduct);
@@ -71,8 +109,12 @@ public class Event {
         }
         descriptionProduct+="\n";
         List<CallbackButton> listBtn = new ArrayList<>();
-        listBtn.add(new CallbackButton(BUTTONS.BTN_PHOTO));
-        listBtn.add(new CallbackButton(BUTTONS.BTN_VIDEO));
+        CallbackButton btnPhoto = new CallbackButton(BUTTONS.BTN_PHOTO);
+        btnPhoto.setCallbackData("photo_" + idProduct);
+        listBtn.add(btnPhoto);
+        CallbackButton btnVideo = new CallbackButton(BUTTONS.BTN_VIDEO);
+        btnVideo.setCallbackData("video_" + idProduct);
+        listBtn.add(btnVideo);
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
         AnswerBot answerBot = getAnswer(update, STATE_BOT.VIEW_PRODUCT, listBtn, 2);
         answerBot.setText(answerBot.getText() + descriptionProduct);
@@ -215,13 +257,5 @@ public class Event {
         rbc.close();
         log.info("File " + fileName + " download");
         return pathFile + fileName;
-    }
-
-    protected void deleteFile(String catalog) {
-        new File(catalog).mkdirs();
-        Path path= Paths.get(catalog);
-        if(Files.exists(path))
-            for (File myFile : new File(catalog).listFiles())
-                if (myFile.isFile()) myFile.delete();
     }
 }

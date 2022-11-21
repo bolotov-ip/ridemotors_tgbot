@@ -77,6 +77,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 execute(answer.getMessage());
             else if(answer.hasDocument())
                 execute(answer.getDocument());
+            else if (answer.hasMedia()) {
+                execute(answer.getMediaGroup());
+            }
         } catch (TelegramApiException e) {
             log.error(e.getMessage());
         }

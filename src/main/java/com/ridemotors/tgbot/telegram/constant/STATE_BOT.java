@@ -17,9 +17,6 @@ public enum STATE_BOT {
     ADMIN_DELETE_CATEGORY,
     ADMIN_DELETE_CATEGORY_SUCCESS,
     ADMIN_ADD_FILES_RESOURCES,
-    ADMIN_ADD_FILES_RESOURCES_SUCCESS,
-    ADMIN_ADD_FILES_RESOURCES_PROCESS,
-    ADMIN_ADD_FILES_RESOURCES_FAILED,
     VIEW_PRODUCT;
 
     private static Map<String, String> textMessage = new HashMap<String, String>();
@@ -39,11 +36,8 @@ public enum STATE_BOT {
         textMessage.put("ADMIN_DELETE_CATEGORY", "Вы точно хотите удалить категорию\n");
         textMessage.put("ADMIN_DELETE_CATEGORY_SUCCESS", " успешно удалена\n");
         textMessage.put("ADMIN_ADD_FILES_RESOURCES", "Загрузите файлы для товаров.\n" +
-                "Файлы находятс в одной zip папке и размер этой папки не должен превышать 100Mb\n" +
-                "Файлы каждого товара находятся в папке вложенной в zip папку и эта папка имеет номер id товара");
-        textMessage.put("ADMIN_ADD_FILES_RESOURCES_PROCESS", "Файлы добавляются, пожалуйста подождите извещения об окончании добавления\n");
-        textMessage.put("ADMIN_ADD_FILES_RESOURCES_SUCCESS", "Файлы добавлены успешно\n");
-        textMessage.put("ADMIN_ADD_FILES_RESOURCES_FAILED", "Фо время добавления файлов произошла ошибка\n");
+                "Поместите файлы каждого товара в папку названную id товара, затем создайте из этой папки zip архив размером не более 20Mb\n" +
+                "Вы можете отправить эти архивы одновременно, обязательно дождитесь уведомления об окончании загрузки для каждого архива");
     }
 
     public String getTextMessage() {

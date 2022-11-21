@@ -1,27 +1,28 @@
-package com.ridemotors.tgbot.service;
+package com.ridemotors.tgbot.util;
 
 import com.ridemotors.tgbot.config.BotConfig;
 import com.ridemotors.tgbot.constant.STATE_UPDATE_RESOURCES;
-import com.ridemotors.tgbot.telegram.TelegramBot;
-import com.ridemotors.tgbot.util.Util;
+import com.ridemotors.tgbot.service.ResourceManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 @Service
-public class FileManager {
+public class UtilFile {
 
-    private final Logger log = LoggerFactory.getLogger(FileManager.class);
     @Autowired
-    BotConfig botConfig;
+    private BotConfig botConfig;
+
+    private static final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
     public String getPathResources() {
-        String path = getPathRootApp() +"resources" +File.separator;
+        String path = getPathRootApp() +"resources" + File.separator;
         createDirectory(path);
         return path;
     }
@@ -47,11 +48,11 @@ public class FileManager {
         }
     }
 
-    public STATE_UPDATE_RESOURCES extractFile(String pathFile) {
-        STATE_UPDATE_RESOURCES answer = STATE_UPDATE_RESOURCES.SUCCESS;
-        try (var file = new ZipFile(pathFile)) {
+    public boolean extractFile(String pathFile, String uncompressedDirectory) {
+        boolean result = true;
+        Charset CP866 = Charset.forName("CP866");
+        try (var file = new ZipFile(pathFile, CP866)) {
             var entries = file.entries();
-            var uncompressedDirectory = getPathResources();
             while (entries.hasMoreElements()) {
                 var entry = entries.nextElement();
                 if (entry.isDirectory()) {
@@ -62,16 +63,16 @@ public class FileManager {
             }
         } catch (IOException e) {
             log.error(e.getMessage());
-            answer = STATE_UPDATE_RESOURCES.FAILED;
+            result = false;
         }
-        return answer;
+        return result;
     }
 
     private void processDirectory(String uncompressedDirectory, ZipEntry entry) {
         var newDirectory = uncompressedDirectory + entry.getName();
         var directory = new File(newDirectory);
         if(directory.exists())
-            Util.recursiveDelete(directory);
+            deleteDirectory(directory);
         log.info("Creating Directory: {}", newDirectory);
         createDirectory(newDirectory);
     }
@@ -84,8 +85,8 @@ public class FileManager {
             var uncompressedFileName = uncompressedRootDirectory + entry.getName();
             createDirectory(getUncompressedDirectory(uncompressedRootDirectory, entry.getName()));
             try (
-                var os = new FileOutputStream(uncompressedFileName);
-                var bos = new BufferedOutputStream(os)
+                    var os = new FileOutputStream(uncompressedFileName);
+                    var bos = new BufferedOutputStream(os)
             ) {
                 while (bis.available() > 0) {
                     bos.write(bis.read());
@@ -106,5 +107,25 @@ public class FileManager {
         }
         String result = uncompressedDirectory + name;
         return result;
+    }
+
+    public void clearDirectory(String path) {
+        for (File file : new File(path).listFiles())
+            recursiveDelete(file);
+    }
+
+    public void deleteDirectory(File file) {
+        recursiveDelete(file);
+    }
+
+    private void recursiveDelete(File file) {
+        if (!file.exists())
+            return;
+        if (file.isDirectory()) {
+            for (File f : file.listFiles()) {
+                recursiveDelete(f);
+            }
+        }
+        file.delete();
     }
 }

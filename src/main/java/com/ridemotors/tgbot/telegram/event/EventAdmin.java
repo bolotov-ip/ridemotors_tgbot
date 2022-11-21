@@ -11,6 +11,7 @@ import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
 import com.ridemotors.tgbot.telegram.domain.AnswerBot;
 import com.ridemotors.tgbot.telegram.domain.CallbackButton;
 import com.ridemotors.tgbot.util.Util;
+import com.ridemotors.tgbot.util.UtilFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -26,6 +27,9 @@ public class EventAdmin extends Event {
 
     @Autowired
     CategoryManager categoryManager;
+
+    @Autowired
+    UtilFile utilFile;
 
     public AnswerBot start(Update update) {
         List<CallbackButton> listBtn = new ArrayList<>();
@@ -47,37 +51,42 @@ public class EventAdmin extends Event {
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
         String fileName = update.getMessage().getDocument().getFileName();
         String fileId = update.getMessage().getDocument().getFileId();
-        String catalog= fileManager.getPathTemp();
-        String pathFile = "";
-        try {
-            pathFile = uploadFile(fileName, fileId, catalog);
-        } catch (IOException e) {
-            log.error(e.getMessage());
-            throw new RuntimeException();
+        String catalog= utilFile.getPathTemp();
+        AnswerBot answerBot = getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES, listBtn, 1);
+        if(update.getMessage().getDocument().getFileSize()>19900000) {
+            answerBot.setText("Файл " + fileName + " слишком большой, размер архива не должен превышать 20Mb");
+            return answerBot;
         }
-        String finalPathFile = pathFile;
         new Thread(new Runnable() {
             @Override
             public void run() {
+                AnswerBot answerBot =  getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES, listBtn, 1);
                 try {
-                    STATE_UPDATE_RESOURCES state = fileManager.extractFile(finalPathFile);
+                    String pathFile = uploadFile(fileName, fileId, catalog);
+                    STATE_UPDATE_RESOURCES state = resourceManager.addResources(pathFile);
                     if(state.equals(STATE_UPDATE_RESOURCES.SUCCESS)) {
-                        AnswerBot answerBot =  getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES_SUCCESS, listBtn, 1);
-                        bot.execute(answerBot.getMessage());
+                        answerBot.setText("Файл " +fileName +" загружен успешно");
                     }
                     else if(state.equals(STATE_UPDATE_RESOURCES.FAILED)){
-                        AnswerBot answerBot =  getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES_SUCCESS, listBtn, 1);
-                        bot.execute(answerBot.getMessage());
+                        answerBot.setText("Файл "+fileName +" не был загружен");
                     }
-                    Util.clearDirectory(catalog);
+                    utilFile.clearDirectory(catalog);
                 }
-                catch (TelegramApiException e) {
+                catch (IOException e) {
+                    log.error("IOException: {}", e.getMessage());
+                    answerBot.setText("Файл "+fileName +" не был загружен");
+                }
+                try {
+                    bot.execute(answerBot.getMessage());
+                } catch (TelegramApiException e) {
+                    log.error(e.getMessage());
                     throw new RuntimeException(e);
                 }
             }
         }).start();
 
-        return getAnswer(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES_PROCESS, listBtn, 1);
+        answerBot.setText("Файл " +fileName+" добавляется, пожалуйста подождите извещения об окончании добавления\n");
+        return answerBot;
     }
 
     public AnswerBot inputNameCategory(Update update) {
@@ -151,7 +160,8 @@ public class EventAdmin extends Event {
     public AnswerBot downloadProductFile(Update update) {
         String fileName = update.getMessage().getDocument().getFileName();
         String fileId = update.getMessage().getDocument().getFileId();
-        String catalog= fileManager.getPathTemp();
+        String catalog= utilFile.getPathTemp();
+        update.getMessage().getDocument().getFileSize();
         String pathFile = "";
         try {
             pathFile = uploadFile(fileName, fileId, catalog);
@@ -161,7 +171,7 @@ public class EventAdmin extends Event {
         }
         File excel = new File(pathFile);
         STATE_UPDATE_PRODUCT state = productManager.updateProducts(excel);
-        Util.clearDirectory(catalog);
+        utilFile.clearDirectory(catalog);
 
         if(state.equals(STATE_UPDATE_PRODUCT.SUCCESS))
             return getAnswer(update, STATE_BOT.ADMIN_LOAD_SUCCESS, null, 1);
