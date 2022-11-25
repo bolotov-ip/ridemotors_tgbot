@@ -6,15 +6,16 @@ import com.ridemotors.tgbot.dao.ProductDao;
 import com.ridemotors.tgbot.domain.ProductsReadable;
 import com.ridemotors.tgbot.exception.AddProductException;
 import com.ridemotors.tgbot.exception.FormatExcelException;
+import com.ridemotors.tgbot.model.Category;
 import com.ridemotors.tgbot.model.Product;
 import com.ridemotors.tgbot.util.Util;
-import com.ridemotors.tgbot.util.UtilFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 @Service
@@ -26,13 +27,29 @@ public class ProductManager {
     @Autowired
     ProductDao productDao;
 
-
+    @Autowired
+    CategoryManager categoryManager;
 
     private final Logger log = LoggerFactory.getLogger(ProductManager.class);
 
-    public File getFileProducts(Long rootCategory) {
-        List<Product> products = null;
-        return null;
+    public File getExcelProducts(Long rootCategoryId, boolean isAdmin) {
+        List<Product> resultProducts = new ArrayList<>();
+        Category rootCategory = categoryManager.getCategory(rootCategoryId);
+        List<Category> categories = categoryManager.getAllChildren(rootCategoryId);
+        if(rootCategoryId!=0L)
+            categories.add(0, rootCategory);
+        for(Category category : categories) {
+            resultProducts.add(null);
+            List<Product> products = getCategoryProducts(category.getId());
+            resultProducts.addAll(products);
+        }
+        File excel = null;
+        try {
+            excel = excelManager.createExcel(resultProducts, isAdmin);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+        return excel;
     }
 
     public List<Product> getCategoryProducts(Long id) {
@@ -104,6 +121,8 @@ public class ProductManager {
 
     private Product createProduct(HashMap<String, String> productData) throws JsonProcessingException, AddProductException {
         Long idCategory = Util.formatStringToLong(productData.get("id_category*"));
+        if(categoryManager.getChildren(idCategory).size()>0)
+            throw new AddProductException("Нельзя добавлять товары в категории в которые вложены категории");
         Long id = Util.formatStringToLong(productData.get("id*"));
 
         Product product = id==0? new Product() : productDao.findById(id).isPresent() ? productDao.findById(id).get() : null;
@@ -126,12 +145,13 @@ public class ProductManager {
         // Убеждаемся что в таблице в поле character те же заголовки
         // !!!!!!!!!!!!! Надо написать метод для получения одного продукта , а не вытаскивать все !!!!!!!!!!!!!!!!!!
         List<Product> productsCategory = productDao.findByCategory(idCategory);
-        Map<String, String> map = Util.convertStringToMap(productsCategory.get(0).getCharacter());
-        Set<String> keySet = map.keySet();
-        if(!map.keySet().equals(productData.keySet()))
-            throw new AddProductException("Дополнительные поля добавляемого товара имеют " +
-                    "несовпадающий заголовок с товарами этой категории");
-
+        if(productsCategory.size()>0){
+            Map<String, String> map = Util.convertStringToMap(productsCategory.get(0).getCharacter());
+            Set<String> keySet = map.keySet();
+            if(!map.keySet().equals(productData.keySet()))
+                throw new AddProductException("Дополнительные поля добавляемого товара имеют " +
+                        "несовпадающий заголовок с товарами этой категории");
+        }
         product.setCharacter(Util.convertMapToString(productData));
         return product;
     }

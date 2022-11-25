@@ -41,15 +41,44 @@ public class UserHandler implements Handler{
         if(update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
 
         }
-        else if (update.hasMessage() && update.getMessage().hasText()) {
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            String textMessage = update.getMessage().getText();
+
+            if(textMessage.equals(COMMANDS.COMMAND_START.getText())) {
+                return eventUser.start(update);
+            }
+        }
+        if(update.hasCallbackQuery()) {
+
+            String callbackData = update.getCallbackQuery().getData();
+
+            if(callbackData.equals(BUTTONS.BTN_DOWNLOAD_ALL_PRODUCTS.toString()))
+                return eventUser.downloadExcelProduct(update, 0L);
+
+            if(callbackData.equals(BUTTONS.BTN_BACK.toString()))
+                return eventUser.back(update);
+
+            STATE_BOT state = stateDao.getState(update.getCallbackQuery().getMessage().getChatId());
+            if(state.equals(STATE_BOT.USER_START)){
+                String[] data = callbackData.split("_");
+                if(data.length==3) {
+                    if(data[0].equals("c"))
+                        return eventUser.menuCategory(update, Long.valueOf(data[1]), Integer.valueOf(data[2]));
+                    if(data[0].equals("p"))
+                        return eventUser.viewProduct(update, Long.valueOf(data[1]));
+                }
+            }
+            if(state.equals(STATE_BOT.VIEW_PRODUCT)){
+                String[] data = callbackData.split("_");
+                if(data.length==2) {
+                    if(data[0].equals("photo"))
+                        return eventUser.sendImages(update, Long.valueOf(data[1]));
+                    if(data[0].equals("video"))
+                        return eventUser.sendVideos(update, Long.valueOf(data[1]));
+                }
+            }
 
         }
-        else if(update.hasCallbackQuery()) {
-
-        }
-        else {
-            return eventUser.commandNotSupport(update);
-        }
-        return null;
+        return eventUser.commandNotSupport(update);
     }
 }

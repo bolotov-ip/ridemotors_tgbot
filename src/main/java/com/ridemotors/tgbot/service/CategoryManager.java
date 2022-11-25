@@ -1,9 +1,7 @@
 package com.ridemotors.tgbot.service;
 
-import com.ridemotors.tgbot.constant.STATE_UPDATE_CATEGORY;
 import com.ridemotors.tgbot.dao.CategoryDao;
 import com.ridemotors.tgbot.model.Category;
-import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +15,27 @@ public class CategoryManager {
     @Autowired
     CategoryDao categoryDao;
 
+    public Category getParentCategory(Long id) {
+        Category category = getCategory(id);
+        Long parentId = category.getParent();
+        Category parentCategory = getCategory(parentId);
+        return parentCategory;
+    }
+
+    public Category getCategory(Long id) {
+        Optional<Category> category = categoryDao.findById(id);
+        if(category.isPresent())
+            return category.get();
+        return null;
+    }
+
+    public boolean existCategory(Long id) {
+        Optional<Category> category = categoryDao.findById(id);
+        if(category.isPresent())
+            return true;
+        return false;
+    }
+
     public String getCategoryName(Long id) {
        Optional<Category> category = categoryDao.findById(id);
        if(category.isPresent())
@@ -25,19 +44,25 @@ public class CategoryManager {
            return "";
     }
 
-    public List<Category> getChildren(Long category) {
-        List<Category> result = categoryDao.getCategoryByParent(category);
-        if(result == null)
+    public List<Category> getAllChildren(Long categoryId) {
+        List<Category> result = new ArrayList<>();
+        List<Category> categories = categoryDao.getCategoryByParent(categoryId);
+        if(categories == null)
             return new ArrayList<>();
+        else {
+            result.addAll(categories);
+            for(Category category : categories) {
+                result.addAll(getAllChildren(category.getId()));
+            }
+        }
         return result;
     }
 
-    public List<Category> getAllChildren(Long category) {
-        return null;
-    }
-
-    public STATE_UPDATE_CATEGORY addCategory(Long parent, String name) {
-        return STATE_UPDATE_CATEGORY.SUCCESS;
+    public List<Category> getChildren(Long categoryId) {
+        List<Category> categories = categoryDao.getCategoryByParent(categoryId);
+        if(categories == null)
+            return new ArrayList<>();
+        return categories;
     }
 
     public void deleteCategory(Long id, ProductManager productManager) {
@@ -57,6 +82,12 @@ public class CategoryManager {
         Category category = new Category();
         category.setParent(parentId);
         category.setName(name);
-        categoryDao.save(category);
+        category = categoryDao.save(category);
+        Optional<Category> parentCategory = categoryDao.findById(parentId);
+        if(parentCategory.isPresent()) {
+            parentCategory.get().setChildren(category.getId());
+            categoryDao.save(parentCategory.get());
+        }
+
     }
 }

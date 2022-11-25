@@ -1,15 +1,31 @@
 package com.ridemotors.tgbot.telegram.domain;
 
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
-import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
-import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.*;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 
 public class AnswerBot {
     BotApiMethod<?> message;
     SendDocument document;
     SendMediaGroup mediaGroup;
+    SendVideo sendVideo;
+    SendPhoto sendPhoto;
+
+    public SendVideo getSendVideo() {
+        return sendVideo;
+    }
+
+    public void setSendVideo(SendVideo sendVideo) {
+        this.sendVideo = sendVideo;
+    }
+
+    public SendPhoto getSendPhoto() {
+        return sendPhoto;
+    }
+
+    public void setSendPhoto(SendPhoto sendPhoto) {
+        this.sendPhoto = sendPhoto;
+    }
 
     public SendMediaGroup getMediaGroup() {
         return mediaGroup;
@@ -50,6 +66,16 @@ public class AnswerBot {
         }
     }
 
+    public boolean hasVideo() {
+        if(sendVideo !=null)
+            return true;
+        return false;
+    }
+    public boolean hasPhoto() {
+        if(sendPhoto !=null)
+            return true;
+        return false;
+    }
     public boolean hasMessage() {
         if(message !=null)
             return true;

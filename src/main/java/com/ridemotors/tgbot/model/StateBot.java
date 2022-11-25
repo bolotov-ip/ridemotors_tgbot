@@ -22,6 +22,16 @@ public class StateBot {
 
     Long category;
 
+    Long product;
+
+    public Long getProduct() {
+        return product;
+    }
+
+    public void setProduct(Long product) {
+        this.product = product;
+    }
+
     public Long getCategory() {
         return category;
     }

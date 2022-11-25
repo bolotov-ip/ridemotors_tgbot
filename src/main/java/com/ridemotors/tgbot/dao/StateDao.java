@@ -44,4 +44,18 @@ public interface StateDao extends JpaRepository<StateBot, Long> {
         else
             return -1L;
     }
+
+    default void setProduct(Long product, Long chatId) {
+        Optional<StateBot> state = findById(chatId);
+        state.get().setProduct(product);
+        save(state.get());
+    }
+
+    default Long getProduct(Long chatId) {
+        Optional<StateBot> state = findById(chatId);
+        if(state.isPresent())
+            return state.get().getProduct();
+        else
+            return -1L;
+    }
 }

@@ -48,30 +48,66 @@ public class AdminHandler implements Handler{
             if(state.equals(STATE_BOT.ADMIN_ADD_CATEGORY)) {
                 return eventAdmin.createCategory(update);
             }
+            if(state.equals(STATE_BOT.ADMIN_DELETE_RESOURCES_BY_ID)) {
+                Long productId = -1L;
+                try {
+                    productId = Long.valueOf(textMessage);
+                }
+                catch (Exception e) {
+                    log.error(e.getMessage());
+                }
+                if(productId == -1L)
+                    return eventAdmin.commandNotSupport(update);
+                return eventAdmin.deleteResourceById(update, productId);
+            }
+            if (state.equals(STATE_BOT.ADMIN_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY)) {
+                return eventAdmin.downloadExcelProductByCategory(update);
+            }
             return eventAdmin.commandNotSupport(update);
-        } else if(update.hasCallbackQuery()) {
+        }
+        if(update.hasCallbackQuery()) {
+
             String callbackData = update.getCallbackQuery().getData();
 
-            if(callbackData.equals(BUTTONS.BTN_ADMIN_PRODUCTS.toString())) {
-                return eventAdmin.products(update);
+            if(callbackData.equals(BUTTONS.BTN_BACK.toString())) {
+                return eventAdmin.back(update);
             }
-            else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_FILE_PRODUCTS.toString())) {
-                return eventAdmin.addProducts(update);
+            if(callbackData.equals(BUTTONS.BTN_PRODUCTS.toString())) {
+                return eventAdmin.menuProduct(update);
             }
-            else if(callbackData.equals(BUTTONS.BTN_ADMIN_CATEGORY.toString())) {
-                return eventAdmin.category(update, 0L, 1);
+            if(callbackData.equals(BUTTONS.BTN_LOAD_EXCEL_PRODUCTS.toString())) {
+                return eventAdmin.info(update, STATE_BOT.ADMIN_LOAD_PRODUCTS, "", true);
             }
-            else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_CATEGORY.toString())) {
-                return eventAdmin.inputNameCategory(update);
+            if(callbackData.equals(BUTTONS.BTN_CATEGORY.toString())) {
+                return eventAdmin.menuCategory(update, 0L, 1);
             }
-            else if(callbackData.equals(BUTTONS.BTN_ADMIN_DELETE_CATEGORY.toString())) {
-                return eventAdmin.confirmDeleteCategory(update);
+            if(callbackData.equals(BUTTONS.BTN_ADD_CATEGORY.toString())) {
+                return eventAdmin.info(update, STATE_BOT.ADMIN_ADD_CATEGORY, "", true);
             }
-            else if(callbackData.equals(BUTTONS.BTN_ADMIN_REMOVE_CATEGORY.toString())) {
-                return eventAdmin.deleteCategory(update);
+            if(callbackData.equals(BUTTONS.BTN_DELETE_CATEGORY.toString())) {
+                return eventAdmin.confirmDelete(update, STATE_BOT.ADMIN_DELETE_CATEGORY);
             }
-            else if(callbackData.equals(BUTTONS.BTN_ADMIN_ADD_FILE_RESOURCES.toString())) {
-                return eventAdmin.addResourceFiles(update);
+            if(callbackData.equals(BUTTONS.BTN_ADD_FILE_RESOURCES.toString())) {
+                return eventAdmin.info(update, STATE_BOT.ADMIN_ADD_FILES_RESOURCES, "", true);
+            }
+            if(callbackData.equals(BUTTONS.BTN_DELETE_RESOURCE_BY_ID.toString())) {
+                return eventAdmin.info(update, STATE_BOT.ADMIN_DELETE_RESOURCES_BY_ID, "", true);
+            }
+            if(callbackData.equals(BUTTONS.BTN_DELETE_ALL_RESOURCE.toString())) {
+                return eventAdmin.confirmDelete(update, STATE_BOT.ADMIN_DELETE_ALL_RESOURCES);
+            }
+            if(callbackData.equals(BUTTONS.BTN_DOWNLOAD_ALL_PRODUCTS.toString())) {
+                return eventAdmin.downloadExcelProduct(update, 0L);
+            }
+            if(callbackData.equals(BUTTONS.BTN_DOWNLOAD_PRODUCTS_BY_CATEGORY.toString())) {
+                return eventAdmin.info(update, STATE_BOT.ADMIN_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY, "", true);
+            }
+            if(callbackData.equals(BUTTONS.BTN_DELETE.toString())) {
+                STATE_BOT state = stateDao.getState(update.getCallbackQuery().getMessage().getChatId());
+                if(state.equals(STATE_BOT.ADMIN_DELETE_CATEGORY))
+                    return eventAdmin.deleteCategory(update);
+                if(state.equals(STATE_BOT.ADMIN_DELETE_ALL_RESOURCES))
+                    return eventAdmin.deleteAllResources(update);
             }
 
             STATE_BOT state = stateDao.getState(update.getCallbackQuery().getMessage().getChatId());
@@ -79,7 +115,7 @@ public class AdminHandler implements Handler{
                 String[] data = callbackData.split("_");
                 if(data.length==3) {
                     if(data[0].equals("c"))
-                        return eventAdmin.category(update, Long.valueOf(data[1]), Integer.valueOf(data[2]));
+                        return eventAdmin.menuCategory(update, Long.valueOf(data[1]), Integer.valueOf(data[2]));
                     if(data[0].equals("p"))
                         return eventAdmin.viewProduct(update, Long.valueOf(data[1]));
                 }
@@ -94,13 +130,20 @@ public class AdminHandler implements Handler{
                 }
             }
         }
-        else if(update.getMessage().hasDocument()) {
+
+        if(update.getMessage().hasDocument()) {
             STATE_BOT state = stateDao.getState(update.getMessage().getChatId());
             if(state.equals(STATE_BOT.ADMIN_LOAD_PRODUCTS))
-                return eventAdmin.downloadProductFile(update);
-            if(state.equals(STATE_BOT.ADMIN_ADD_FILES_RESOURCES))
-                return eventAdmin.downloadResourceFiles(update, bot);
+                return eventAdmin.receiveProduct(update);
         }
+
+        if(update.getMessage().hasPhoto() || update.getMessage().hasVideo()) {
+            STATE_BOT state = stateDao.getState(update.getMessage().getChatId());
+            if(state.equals(STATE_BOT.ADMIN_ADD_FILES_RESOURCES)){
+                return eventAdmin.receiveResource(update);
+            }
+        }
+
         return eventAdmin.commandNotSupport(update);
     }
 }

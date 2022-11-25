@@ -1,6 +1,9 @@
 package com.ridemotors.tgbot.service;
 
+import com.ridemotors.tgbot.constant.RESOURCE_TYPES;
 import com.ridemotors.tgbot.constant.STATE_UPDATE_RESOURCES;
+import com.ridemotors.tgbot.dao.ResourceDao;
+import com.ridemotors.tgbot.model.Resource;
 import com.ridemotors.tgbot.util.UtilFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +20,29 @@ public class ResourceManager {
     @Autowired
     UtilFile utilFile;
 
+    @Autowired
+    ResourceDao resourceDao;
+
     private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
+    public STATE_UPDATE_RESOURCES addResource(Long productId, String fileId, RESOURCE_TYPES type) {
+        Resource resource = new Resource();
+        resource.setFileId(fileId);
+        resource.setProductId(productId);
+        resource.setType(type.toString());
+        resourceDao.save(resource);
+        return STATE_UPDATE_RESOURCES.SUCCESS;
+    }
+
+    public List<Resource> getPhotosByProduct(Long productId) {
+       return  resourceDao.getResourceByType(productId, RESOURCE_TYPES.PHOTO.toString());
+    }
+
+    public List<Resource> getVideosByProduct(Long productId) {
+        return  resourceDao.getResourceByType(productId, RESOURCE_TYPES.VIDEO.toString());
+    }
+
+    /*
     public STATE_UPDATE_RESOURCES addResources(String pathFileZip) {
         String pathResources = utilFile.getPathResources();
         boolean isSuccess = utilFile.extractFile(pathFileZip, pathResources);
@@ -26,17 +50,16 @@ public class ResourceManager {
             return STATE_UPDATE_RESOURCES.SUCCESS;
         else
             return STATE_UPDATE_RESOURCES.FAILED;
-    }
+    }*/
 
     public STATE_UPDATE_RESOURCES deleteResourceByIdProduct(Long id) {
-        String pathResource = utilFile.getPathResources() + String.valueOf(id);
-        utilFile.deleteDirectory(new File(pathResource));
+        List<Resource> resources = resourceDao.getResourceByProduct(id);
+        resourceDao.deleteAll(resources);
         return STATE_UPDATE_RESOURCES.SUCCESS;
     }
 
     public STATE_UPDATE_RESOURCES deleteAllResources() {
-        String pathResources = utilFile.getPathResources();
-        utilFile.clearDirectory(pathResources);
+        resourceDao.deleteAll();
         return STATE_UPDATE_RESOURCES.SUCCESS;
     }
 

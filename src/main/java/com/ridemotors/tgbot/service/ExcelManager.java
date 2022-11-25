@@ -1,30 +1,155 @@
 package com.ridemotors.tgbot.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ridemotors.tgbot.domain.ProductsReadable;
 import com.ridemotors.tgbot.exception.FormatExcelException;
+import com.ridemotors.tgbot.model.Product;
 import com.ridemotors.tgbot.util.Util;
+import com.ridemotors.tgbot.util.UtilFile;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Date;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @Service
 public class ExcelManager {
+
+    @Autowired
+    CategoryManager categoryManager;
+
+    @Autowired
+    ResourceManager resourceManager;
+
+    @Autowired
+    UtilFile utilFile;
 
     private enum TYPE_ROW {
         PRODUCT, HEADER, EMPTY, COMMAND_ADD_PRODUCT, COMMAND_DELETE_PRODUCT, COMMAND_IGNORE_ROW;
     }
 
     private final Logger log = LoggerFactory.getLogger(ExcelManager.class);
+
+    public File createExcel(List<Product> products, boolean isAdmin) throws IOException {
+        int columnWidth = 8000;
+        List<Integer> widthListAdmin = Arrays.asList(1500, 4000, 4000, 6000, 10000, 1500, 2000, 2000);
+        List<Integer> widthListUser = Arrays.asList(4000, 6000, 10000, 1500);
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Товары");
+        CellStyle headerStyle = workbook.createCellStyle();
+        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        headerStyle.setBorderLeft(BorderStyle.THIN);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
+        headerStyle.setBorderRight(BorderStyle.THIN);
+        headerStyle.setBorderTop(BorderStyle.THIN);
+        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+        headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        CellStyle style = workbook.createCellStyle();
+        style.setWrapText(true);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+
+        List<String> columnNameCommon = new ArrayList<>();
+        if(isAdmin)
+            columnNameCommon.add("id*");
+        columnNameCommon.add("Наименование*");
+        if(isAdmin)
+            columnNameCommon.add("id_category*");
+        columnNameCommon.add("Наименование категории**");
+        columnNameCommon.add("Описание*");
+        columnNameCommon.add("Цена*");
+        if(isAdmin) {
+            columnNameCommon.add("Фото**");
+            columnNameCommon.add("Видео**");
+        }
+
+        List<String> columnName = new ArrayList<>();
+
+        int countRow = 0;
+        boolean isHeader = false;
+        for(Product product : products) {
+            if(product==null){
+                isHeader = true;
+                countRow++;
+                continue;
+            }
+            if(isHeader) {
+                columnName= new ArrayList<>(columnNameCommon);
+                Map<String,String> characters = Util.convertStringToMap(product.getCharacter());
+                for(Map.Entry<String,String> entry : characters.entrySet()) {
+                    columnName.add(entry.getKey());
+                }
+                Row header = sheet.createRow(countRow);
+                for(int i=0; i<columnName.size(); i++) {
+                    List<Integer> listColumnWidth = isAdmin ? widthListAdmin : widthListUser;
+                    if(i<listColumnWidth.size())
+                        sheet.setColumnWidth(i, listColumnWidth.get(i));
+                    else
+                        sheet.setColumnWidth(i, columnWidth);
+                    Cell cell =  header.createCell(i);
+                    cell.setCellStyle(headerStyle);
+                    cell.setCellValue(columnName.get(i));
+                }
+                isHeader=false;
+                countRow++;
+            }
+            Row row = sheet.createRow(countRow);
+            Map<String, String> rowData = getRowData(columnName, product, isAdmin);
+            for(int i=0; i<columnName.size(); i++) {
+                Cell cell =  row.createCell(i);
+                cell.setCellStyle(style);
+                cell.setCellValue(rowData.get(columnName.get(i)));
+            }
+            countRow++;
+        }
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("dd-MM-yyyy HH-mm-ss");
+        String formatDateTime = LocalDateTime.now().format(format);
+        String fileLocation = utilFile.getPathTemp() + "Товары от " + formatDateTime + ".xlsx";
+        FileOutputStream outputStream = new FileOutputStream(fileLocation);
+        workbook.write(outputStream);
+        workbook.close();
+        return new File(fileLocation);
+    }
+
+    private Map<String, String> getRowData(List<String> column, Product product, boolean isAdmin) throws JsonProcessingException {
+        Map<String, String> rowData = new HashMap<>();
+        if(isAdmin) {
+            rowData.put(column.get(0), String.valueOf(product.getId()));
+            rowData.put(column.get(1), product.getName());
+            rowData.put(column.get(2), String.valueOf(product.getCategory()));
+            rowData.put(column.get(3), categoryManager.getCategoryName(product.getCategory()));
+            rowData.put(column.get(4), product.getDescription());
+            rowData.put(column.get(5), product.getPrice());
+            rowData.put(column.get(6), String.valueOf(resourceManager.getPhotosByProduct(product.getId()).size()));
+            rowData.put(column.get(7), String.valueOf(resourceManager.getVideosByProduct(product.getId()).size()));
+        }
+        else {
+            rowData.put(column.get(0), product.getName());
+            rowData.put(column.get(1), categoryManager.getCategoryName(product.getCategory()));
+            rowData.put(column.get(2), product.getDescription());
+            rowData.put(column.get(3), product.getPrice());
+        }
+
+        Map<String, String> characters = Util.convertStringToMap(product.getCharacter());
+        rowData.putAll(characters);
+        return rowData;
+    }
+
 
     public ProductsReadable parseProducts(File file) throws IOException, FormatExcelException {
         log.info("Считывание файла {} {}", file.getName(), new Date(System.currentTimeMillis()));

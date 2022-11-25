@@ -4,20 +4,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum STATE_BOT {
+    VIEW_PRODUCT,
+
     ADMIN_START,
     ADMIN_CATEGORY,
-    ADMIN_LIST_PRODUCTS,
     ADMIN_PRODUCTS,
     ADMIN_LOAD_PRODUCTS,
-    ADMIN_LOAD_SUCCESS,
-    ADMIN_LOAD_WARNING,
-    ADMIN_LOAD_FAILED,
     ADMIN_ADD_CATEGORY,
-    ADMIN_ADD_CATEGORY_SUCCESS,
     ADMIN_DELETE_CATEGORY,
-    ADMIN_DELETE_CATEGORY_SUCCESS,
     ADMIN_ADD_FILES_RESOURCES,
-    VIEW_PRODUCT;
+    ADMIN_DELETE_RESOURCES_BY_ID,
+    ADMIN_DELETE_ALL_RESOURCES,
+    ADMIN_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY,
+
+    USER_START,
+    USER_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY,
+    USER_CATEGORY;
+
 
     private static Map<String, String> textMessage = new HashMap<String, String>();
     static {
@@ -26,18 +29,21 @@ public enum STATE_BOT {
         textMessage.put("ADMIN_PRODUCTS", "Вы можете скачать все товары нажав соответствующую кнопку\n" +
                 "Для того чтобы скачать товары которые являются дочернимим к определенной категории нажмите 'Товары по категории'");
         textMessage.put("ADMIN_LOAD_PRODUCTS", "Загрузите нужный файл с товарами");
-        textMessage.put("ADMIN_LOAD_SUCCESS", "Загрузка прошла успешно");
-        textMessage.put("ADMIN_LOAD_WARNING", "Загрузка прошла но возникли следующие предупреждения:\n");
-        textMessage.put("ADMIN_LOAD_FAILED", "Загрузка не удалась по причине:\n");
-        textMessage.put("ADMIN_LIST_PRODUCTS", "Товары в категории: ");
         textMessage.put("VIEW_PRODUCT", "Информация о товаре\n");
         textMessage.put("ADMIN_ADD_CATEGORY", "Введите наименование категории\n");
-        textMessage.put("ADMIN_ADD_CATEGORY_SUCCESS", "Категория добавлена успешно\n");
         textMessage.put("ADMIN_DELETE_CATEGORY", "Вы точно хотите удалить категорию\n");
-        textMessage.put("ADMIN_DELETE_CATEGORY_SUCCESS", " успешно удалена\n");
-        textMessage.put("ADMIN_ADD_FILES_RESOURCES", "Загрузите файлы для товаров.\n" +
-                "Поместите файлы каждого товара в папку названную id товара, затем создайте из этой папки zip архив размером не более 20Mb\n" +
-                "Вы можете отправить эти архивы одновременно, обязательно дождитесь уведомления об окончании загрузки для каждого архива");
+        textMessage.put("ADMIN_ADD_FILES_RESOURCES", "Загрузите видео и фото для товаров.\n" +
+                "Отправьте фото и видео указав в подписи (caption) идентификатор товара\n" +
+                "Вы можете указать подпись только для первого фото, остальные привяжутся к этому товару автоматически\n" +
+                "Когда вы начнете загружать медиа к следующему товару, снова укажите его id в подписи");
+        textMessage.put("ADMIN_DELETE_ALL_RESOURCES", "Вы точно хотите удалить все фото и видео?\n");
+        textMessage.put("ADMIN_DELETE_RESOURCES_BY_ID", "Введите идентификатор товара для которого удаляете видео и фото\n");
+        textMessage.put("ADMIN_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY", "Введите идентификатор категории.\n");
+
+        textMessage.put("USER_START", "Добро пожаловать в телеграм бот RideMotors\n" +
+                "Здесь представлен весь ассортимент товаров\n");
+        textMessage.put("USER_CATEGORY", "Категория: ");
+        textMessage.put("USER_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY", "Введите идентификатор категории.\n");
     }
 
     public String getTextMessage() {

@@ -5,6 +5,7 @@ import com.ridemotors.tgbot.config.BotConfig;
 import com.ridemotors.tgbot.dao.StateDao;
 import com.ridemotors.tgbot.model.Button;
 import com.ridemotors.tgbot.model.Product;
+import com.ridemotors.tgbot.model.Resource;
 import com.ridemotors.tgbot.service.ProductManager;
 import com.ridemotors.tgbot.telegram.TelegramBot;
 import com.ridemotors.tgbot.telegram.constant.BUTTONS;
@@ -22,6 +23,7 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMediaGroup;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -61,33 +63,72 @@ public class Event {
 
     protected final Logger log = LoggerFactory.getLogger(TelegramBot.class);
 
+    public AnswerBot info(Update update, STATE_BOT state, String text, boolean isAddText) {
+        List<CallbackButton> listBtn = new ArrayList<>();
+        listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
+        AnswerBot answerBot = getAnswer(update, state, listBtn, 1);
+        if(isAddText)
+            answerBot.setText(answerBot.getText() + text);
+        else
+            answerBot.setText(text);
+        return answerBot;
+    }
+
     public AnswerBot sendImages(Update update, Long idProduct) {
-        List<File> images = resourceManager.getImages(idProduct);
+        String chatId = String.valueOf(update.getCallbackQuery().getMessage().getChatId());
+        List<Resource> photos = resourceManager.getPhotosByProduct(idProduct);
+        if(photos.size()==0) {
+            AnswerBot answerBot = viewProduct(update, idProduct);
+            answerBot.setText(answerBot.getText() + "\nФото не найдены");
+            return answerBot;
+        }
         List<InputMedia> medias = new ArrayList<>();
-        for(File image : images) {
+        if(photos.size()==1) {
+            AnswerBot answerBot = new AnswerBot();
+            SendVideo sendVideo =new SendVideo();
+            sendVideo.setVideo(new InputFile(photos.get(0).getFileId()));
+            sendVideo.setChatId(chatId);
+            answerBot.setSendVideo(sendVideo);
+            return answerBot;
+        }
+        for(Resource image : photos) {
             InputMediaPhoto mediaPhoto = new InputMediaPhoto();
-            mediaPhoto.setMedia(image, image.getName());
+            mediaPhoto.setMedia(image.getFileId());
             medias.add(mediaPhoto);
         }
         AnswerBot answerBot = new AnswerBot();
         SendMediaGroup mediaGroup = new SendMediaGroup();
-        mediaGroup.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
+        mediaGroup.setChatId(chatId);
         mediaGroup.setMedias(medias);
         answerBot.setMediaGroup(mediaGroup);
         return answerBot;
     }
 
     public AnswerBot sendVideos(Update update, Long idProduct) {
-        List<File> videos = resourceManager.getVideos(idProduct);
+        String chatId = String.valueOf(update.getCallbackQuery().getMessage().getChatId());
+        List<Resource> videos = resourceManager.getVideosByProduct(idProduct);
+        if(videos.size()==0) {
+            AnswerBot answerBot = viewProduct(update, idProduct);
+            answerBot.setText(answerBot.getText() + "\nВидео не найдены");
+            return answerBot;
+        }
         List<InputMedia> medias = new ArrayList<>();
-        for(File video : videos) {
+        if(videos.size()==1) {
+            AnswerBot answerBot = new AnswerBot();
+            SendVideo sendVideo =new SendVideo();
+            sendVideo.setVideo(new InputFile(videos.get(0).getFileId()));
+            sendVideo.setChatId(chatId);
+            answerBot.setSendVideo(sendVideo);
+            return answerBot;
+        }
+        for(Resource video : videos) {
             InputMediaVideo mediaVideo = new InputMediaVideo();
-            mediaVideo.setMedia(video, video.getName());
+            mediaVideo.setMedia(video.getFileId());
             medias.add(mediaVideo);
         }
         AnswerBot answerBot = new AnswerBot();
         SendMediaGroup mediaGroup = new SendMediaGroup();
-        mediaGroup.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
+        mediaGroup.setChatId(chatId);
         mediaGroup.setMedias(medias);
         answerBot.setMediaGroup(mediaGroup);
         return answerBot;
@@ -149,10 +190,12 @@ public class Event {
             buttonPrev.setCallbackData(callback + "_" + (numberPage - 1));
             rowInLine.add(buttonPrev);
         }
-        InlineKeyboardButton btnInfo = new InlineKeyboardButton();
-        btnInfo.setText(numberPage + " - " + countPage);
-        btnInfo.setCallbackData(callback + "_" + numberPage);
-        rowInLine.add(btnInfo);
+        if(numberPage>1 || numberPage<countPage) {
+            InlineKeyboardButton btnInfo = new InlineKeyboardButton();
+            btnInfo.setText(numberPage + " - " + countPage);
+            btnInfo.setCallbackData(callback + "_" + numberPage);
+            rowInLine.add(btnInfo);
+        }
         if(numberPage<countPage) {
             InlineKeyboardButton buttonNext = new InlineKeyboardButton();
             buttonNext.setText(">");
@@ -200,6 +243,7 @@ public class Event {
         SendMessage sendMessage = new SendMessage(chatId, EmojiParser.parseToUnicode(stateBot.getTextMessage()));
         setButton(btnList, sendMessage, countColumn);
         answer.setMessage(sendMessage);
+        stateDao.setState(stateBot, Long.valueOf(chatId));
         return answer;
     }
 

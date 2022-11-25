@@ -13,9 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -72,13 +78,22 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         Handler handler = user.isAdmin()?adminHandler:userHandler;
         AnswerBot answer = handler.run();
+        List<BotCommand> listofCommands = new ArrayList<>();
+        listofCommands.add(new BotCommand("/start", "Стартовое меню"));
         try {
+            execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
             if(answer.hasMessage())
                 execute(answer.getMessage());
             else if(answer.hasDocument())
                 execute(answer.getDocument());
             else if (answer.hasMedia()) {
                 execute(answer.getMediaGroup());
+            }
+            else if (answer.hasPhoto()) {
+                execute(answer.getSendPhoto());
+            }
+            else if (answer.hasVideo()) {
+                execute(answer.getSendVideo());
             }
         } catch (TelegramApiException e) {
             log.error(e.getMessage());
