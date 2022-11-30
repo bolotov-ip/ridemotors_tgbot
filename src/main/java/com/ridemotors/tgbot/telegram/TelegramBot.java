@@ -73,15 +73,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         userHandler.setUpdate(update);
 
         User user = userManager.getUser(msg);
-        if(user==null) {
-            user = userManager.registerUser(msg);
-        }
         Handler handler = user.isAdmin()?adminHandler:userHandler;
         AnswerBot answer = handler.run();
-        List<BotCommand> listofCommands = new ArrayList<>();
-        listofCommands.add(new BotCommand("/start", "Стартовое меню"));
+        List<BotCommand> botCommands = new ArrayList<>();
+        botCommands.add(new BotCommand("/start", "Стартовое меню"));
         try {
-            execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
+            execute(new SetMyCommands(botCommands, new BotCommandScopeDefault(), null));
             if(answer.hasMessage())
                 execute(answer.getMessage());
             else if(answer.hasDocument())

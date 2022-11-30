@@ -63,12 +63,28 @@ public class AdminHandler implements Handler{
             if (state.equals(STATE_BOT.ADMIN_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY)) {
                 return eventAdmin.downloadExcelProductByCategory(update);
             }
+            if (state.equals(STATE_BOT.SEARCH_PRODUCT)) {
+                String inputText = update.getMessage().getText();
+                return eventAdmin.findProducts(update, inputText, 1);
+            }
+            if (state.equals(STATE_BOT.ADMIN_ADD_ADMIN)) {
+                return eventAdmin.addAdmin(update);
+            }
             return eventAdmin.commandNotSupport(update);
         }
         if(update.hasCallbackQuery()) {
 
             String callbackData = update.getCallbackQuery().getData();
 
+            if(callbackData.equals(BUTTONS.BTN_ADD_ADMIN.toString())) {
+                return eventAdmin.info(update, STATE_BOT.ADMIN_ADD_ADMIN, "", true);
+            }
+            if(callbackData.equals(BUTTONS.BTN_ADMINS.toString())) {
+                return eventAdmin.adminList(update);
+            }
+            if(callbackData.equals(BUTTONS.BTN_SEARCH.toString())) {
+                return eventAdmin.info(update, STATE_BOT.SEARCH_PRODUCT, "", true);
+            }
             if(callbackData.equals(BUTTONS.BTN_BACK.toString())) {
                 return eventAdmin.back(update);
             }
@@ -117,10 +133,10 @@ public class AdminHandler implements Handler{
                     if(data[0].equals("c"))
                         return eventAdmin.menuCategory(update, Long.valueOf(data[1]), Integer.valueOf(data[2]));
                     if(data[0].equals("p"))
-                        return eventAdmin.viewProduct(update, Long.valueOf(data[1]));
+                        return eventAdmin.viewProduct(update, Long.valueOf(data[1]), STATE_BOT.VIEW_PRODUCT);
                 }
             }
-            if(state.equals(STATE_BOT.VIEW_PRODUCT)){
+            if(state.equals(STATE_BOT.VIEW_PRODUCT) || state.equals(STATE_BOT.VIEW_PRODUCT_SEARCH)){
                 String[] data = callbackData.split("_");
                 if(data.length==2) {
                     if(data[0].equals("photo"))
@@ -128,6 +144,18 @@ public class AdminHandler implements Handler{
                     if(data[0].equals("video"))
                         return eventAdmin.sendVideos(update, Long.valueOf(data[1]));
                 }
+            }
+            if(state.equals(STATE_BOT.SEARCH_PRODUCT)){
+                String[] data = callbackData.split("_");
+                if(data.length==3) {
+                    if(data[0].equals("s"))
+                        return eventAdmin.findProducts(update, data[1], Integer.valueOf(data[2]));
+                }
+                if(data[0].equals("p"))
+                    return eventAdmin.viewProduct(update, Long.valueOf(data[1]), STATE_BOT.VIEW_PRODUCT_SEARCH);
+            }
+            if(state.equals(STATE_BOT.ADMIN_LIST_ADMINS)){
+                return eventAdmin.deleteAdmin(update);
             }
         }
 

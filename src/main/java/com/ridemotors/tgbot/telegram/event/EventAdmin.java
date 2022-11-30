@@ -5,7 +5,7 @@ import com.ridemotors.tgbot.constant.STATE_UPDATE_PRODUCT;
 import com.ridemotors.tgbot.model.Category;
 import com.ridemotors.tgbot.model.Product;
 import com.ridemotors.tgbot.model.Resource;
-import com.ridemotors.tgbot.service.CategoryManager;
+import com.ridemotors.tgbot.model.User;
 import com.ridemotors.tgbot.telegram.constant.BUTTONS;
 import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
 import com.ridemotors.tgbot.telegram.domain.AnswerBot;
@@ -25,17 +25,47 @@ import java.util.List;
 public class EventAdmin extends Event {
 
     @Autowired
-    CategoryManager categoryManager;
-
-    @Autowired
     UtilFile utilFile;
 
     public AnswerBot start(Update update) {
+        Long chatId = update.hasCallbackQuery() ? update.getCallbackQuery().getMessage().getChatId() : update.getMessage().getChatId();
         List<CallbackButton> listBtn = new ArrayList<>();
         listBtn.add(new CallbackButton(BUTTONS.BTN_CATEGORY));
         listBtn.add(new CallbackButton(BUTTONS.BTN_PRODUCTS));
-
+        if(userManager.isOwner(chatId))
+            listBtn.add(new CallbackButton(BUTTONS.BTN_ADMINS));
+        listBtn.add(new CallbackButton(BUTTONS.BTN_SEARCH));
+        //userManager.isOwner();
         return getAnswer(update, STATE_BOT.ADMIN_START, listBtn, 1);
+    }
+
+    public AnswerBot adminList(Update update) {
+        List<User> users = userManager.findAllAdmin();
+        List<CallbackButton> listBtn = new ArrayList<>();
+        for(User user : users) {
+            if(userManager.isOwner(user.getIdChat()))
+                continue;
+            CallbackButton btn = new CallbackButton("Удалить " + user.getName());
+            btn.setCallbackData(String.valueOf(user.getId()));
+            listBtn.add(btn);
+        }
+        listBtn.add(new CallbackButton(BUTTONS.BTN_ADD_ADMIN));
+        return getAnswer(update, STATE_BOT.ADMIN_LIST_ADMINS, listBtn, 1);
+    }
+
+    public AnswerBot deleteAdmin(Update update) {
+        Long chatId = Long.valueOf(update.getCallbackQuery().getData());
+        userManager.removeAdminRole(chatId);
+        return info(update, STATE_BOT.ADMIN_LIST_ADMINS, "Права администратора успешно удалены", false);
+    }
+
+    public AnswerBot addAdmin(Update update) {
+        String username = update.getMessage().getText();
+        User user = userManager.findUserByUsername(username);
+        if(user == null)
+            return info(update, STATE_BOT.ADMIN_ADD_ADMIN, "Пользователь с таким именем не найден\nУбедитесь что имя правильно написано (без @)\nа также что пользователь зарегистрирован в боте", false);
+        userManager.setAdminRole(user.getIdChat());
+        return info(update, STATE_BOT.ADMIN_ADD_ADMIN, "Пользователь " + user.getUserName() + " теперь администрратор", false);
     }
 
     public AnswerBot menuProduct(Update update) {
@@ -70,7 +100,8 @@ public class EventAdmin extends Event {
 
         if(products.size()==0)
             listBtn.add(new CallbackButton(BUTTONS.BTN_ADD_CATEGORY));
-        listBtn.add(new CallbackButton(BUTTONS.BTN_DELETE_CATEGORY));
+        if(idCategory != 0L)
+            listBtn.add(new CallbackButton(BUTTONS.BTN_DELETE_CATEGORY));
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
         AnswerBot answerBot = getAnswer(update, STATE_BOT.ADMIN_CATEGORY, listBtn, 1);
         if(idCategory == 0L)
@@ -82,6 +113,8 @@ public class EventAdmin extends Event {
         stateDao.setCategory(idCategory, update.getCallbackQuery().getMessage().getChatId());
         return answerBot;
     }
+
+
 
     public AnswerBot downloadExcelProduct(Update update, Long categoryId) {
         File excel = productManager.getExcelProducts(categoryId, true);
@@ -221,25 +254,30 @@ public class EventAdmin extends Event {
     }
 
     public AnswerBot back(Update update) {
-        Long chatId = Long.valueOf(update.getCallbackQuery().getMessage().getChatId());
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
         STATE_BOT stateBot = stateDao.getState(chatId);
-        if(stateBot.equals(STATE_BOT.ADMIN_PRODUCTS))
+        if(stateBot.equals(STATE_BOT.ADMIN_PRODUCTS) || stateBot.equals(STATE_BOT.SEARCH_PRODUCT))
             return start(update);
         if(stateBot.equals(STATE_BOT.ADMIN_CATEGORY)){
             Long categoryId = stateDao.getCategory(chatId);
-            if(categoryId==0L)
+            if(categoryId==0L || categoryId==-1L)
                 return start(update);
-            Long parentCategoryId = categoryManager.getCategory(categoryId).getParent();
+            Category category = categoryManager.getCategory(categoryId);
+            Long parentCategoryId = category!=null ? category.getParent() : 0L;
             return menuCategory(update, parentCategoryId, 1);
         }
         if(stateBot.equals(STATE_BOT.ADMIN_DELETE_CATEGORY) || stateBot.equals(STATE_BOT.ADMIN_ADD_CATEGORY) || stateBot.equals(STATE_BOT.VIEW_PRODUCT)) {
-            Long categoryId = stateDao.getCategory(chatId);
+            Long categoryId = stateBot.equals(STATE_BOT.ADMIN_DELETE_CATEGORY) ? 0L : stateDao.getCategory(chatId);
             return menuCategory(update, categoryId, 1);
         }
         if(stateBot.equals(STATE_BOT.ADMIN_DELETE_RESOURCES_BY_ID) || stateBot.equals(STATE_BOT.ADMIN_ADD_FILES_RESOURCES) ||
                 stateBot.equals(STATE_BOT.ADMIN_LOAD_PRODUCTS) || stateBot.equals(STATE_BOT.ADMIN_DELETE_ALL_RESOURCES) ||
                 stateBot.equals(STATE_BOT.ADMIN_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY))
             return menuProduct(update);
+        if(stateBot.equals(STATE_BOT.VIEW_PRODUCT_SEARCH)) {
+            String searchText = stateDao.getSearchText(chatId);
+            return findProducts(update, searchText, 1);
+        }
         return start(update);
     }
 }

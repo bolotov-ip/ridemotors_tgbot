@@ -13,6 +13,8 @@ public interface  ProductDao extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM product p where p.typeId =:typeId order by p.id")
     public List<Product> getProductByType(@Param("typeId") Long typeId);
 
+    public List<Product> findByNameContainingIgnoreCase(String name);
+
     public List<Product> findByCategory(Long category);
 
     default public void removeAllProductByType(Long typeId) {

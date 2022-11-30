@@ -1,5 +1,6 @@
 package com.ridemotors.tgbot.model;
 
+import com.ridemotors.tgbot.constant.ACCESS_ROLE;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 import javax.persistence.Column;
@@ -8,11 +9,11 @@ import javax.persistence.Id;
 import java.sql.Timestamp;
 
 @Entity(name = "users")
-public class User {
-    static enum Role { USER, ADMIN; }
+public class User implements  Button{
+
     public static User createUserAdmin(Message msg) {
         User user = createUser(msg);
-        user.setRole(Role.USER.toString() + ";" + Role.ADMIN.toString());
+        user.setRole(ACCESS_ROLE.USER + ";" + ACCESS_ROLE.ADMIN);
         return user;
     }
 
@@ -23,14 +24,14 @@ public class User {
         user.setFirstName(msg.getChat().getFirstName());
         user.setLastName(msg.getChat().getLastName());
         user.setDateRegistration(new Timestamp(System.currentTimeMillis()));
-        user.setRole(Role.USER.toString());
+        user.setRole(ACCESS_ROLE.USER.toString());
 
         return user;
     }
 
     public boolean isAdmin() {
         if(role!=null)
-            return role.contains(Role.ADMIN.toString());
+            return role.contains(ACCESS_ROLE.ADMIN.toString());
         return false;
     }
 
@@ -113,5 +114,15 @@ public class User {
                 ", dateRegistration=" + dateRegistration +
                 ", role='" + role +
                 '}';
+    }
+
+    @Override
+    public Long getId() {
+        return idChat;
+    }
+
+    @Override
+    public String getName() {
+        return userName;
     }
 }

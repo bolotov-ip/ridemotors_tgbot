@@ -46,7 +46,9 @@ public class EventUser extends Event {
             countPage = fillButtonPage(listBtn, products, "p", pageSize, numberPage);
         }
 
-        listBtn.add(new CallbackButton(BUTTONS.BTN_DOWNLOAD_ALL_PRODUCTS));
+        if(idCategory == 0L)
+            listBtn.add(new CallbackButton(BUTTONS.BTN_DOWNLOAD_ALL_PRODUCTS));
+        listBtn.add(new CallbackButton(BUTTONS.BTN_SEARCH));
         if(idCategory != 0L)
             listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
 
@@ -72,6 +74,10 @@ public class EventUser extends Event {
         if(stateBot.equals(STATE_BOT.VIEW_PRODUCT)) {
             Long categoryId = stateDao.getCategory(chatId);
             return menuCategory(update, categoryId, 1);
+        }
+        if(stateBot.equals(STATE_BOT.VIEW_PRODUCT_SEARCH)) {
+            String searchText = stateDao.getSearchText(chatId);
+            return findProducts(update, searchText, 1);
         }
         return start(update);
     }

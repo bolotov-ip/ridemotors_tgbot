@@ -6,7 +6,9 @@ import com.ridemotors.tgbot.dao.StateDao;
 import com.ridemotors.tgbot.model.Button;
 import com.ridemotors.tgbot.model.Product;
 import com.ridemotors.tgbot.model.Resource;
+import com.ridemotors.tgbot.service.CategoryManager;
 import com.ridemotors.tgbot.service.ProductManager;
+import com.ridemotors.tgbot.service.UserManager;
 import com.ridemotors.tgbot.telegram.TelegramBot;
 import com.ridemotors.tgbot.telegram.constant.BUTTONS;
 import com.ridemotors.tgbot.telegram.constant.STATE_BOT;
@@ -61,7 +63,27 @@ public class Event {
     @Autowired
     ResourceManager resourceManager;
 
+    @Autowired
+    CategoryManager categoryManager;
+
+    @Autowired
+    UserManager userManager;
+
     protected final Logger log = LoggerFactory.getLogger(TelegramBot.class);
+
+    public AnswerBot findProducts(Update update, String inputText, int numberPage) {
+        int pageSize = 5;
+        Long chatId = update.hasCallbackQuery() ? update.getCallbackQuery().getMessage().getChatId() : update.getMessage().getChatId();
+        stateDao.setSearchText(inputText, chatId);
+        List<Product> findProducts = productManager.searchProductByName(inputText);
+        List<CallbackButton> listBtn = new ArrayList<>();
+        int countPage = fillButtonPage(listBtn, findProducts, "p", pageSize, numberPage);
+        listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
+        AnswerBot answerBot = getAnswer(update, STATE_BOT.SEARCH_PRODUCT, listBtn, 1);
+        answerBot.setText("Найдено: " + findProducts.size());
+        addNavigateKeyboard(answerBot, "s_" + inputText, numberPage, countPage);
+        return answerBot;
+    }
 
     public AnswerBot info(Update update, STATE_BOT state, String text, boolean isAddText) {
         List<CallbackButton> listBtn = new ArrayList<>();
@@ -77,8 +99,9 @@ public class Event {
     public AnswerBot sendImages(Update update, Long idProduct) {
         String chatId = String.valueOf(update.getCallbackQuery().getMessage().getChatId());
         List<Resource> photos = resourceManager.getPhotosByProduct(idProduct);
+        STATE_BOT stateBot = stateDao.getState(Long.valueOf(chatId));
         if(photos.size()==0) {
-            AnswerBot answerBot = viewProduct(update, idProduct);
+            AnswerBot answerBot = viewProduct(update, idProduct, stateBot);
             answerBot.setText(answerBot.getText() + "\nФото не найдены");
             return answerBot;
         }
@@ -107,8 +130,9 @@ public class Event {
     public AnswerBot sendVideos(Update update, Long idProduct) {
         String chatId = String.valueOf(update.getCallbackQuery().getMessage().getChatId());
         List<Resource> videos = resourceManager.getVideosByProduct(idProduct);
+        STATE_BOT stateBot = stateDao.getState(Long.valueOf(chatId));
         if(videos.size()==0) {
-            AnswerBot answerBot = viewProduct(update, idProduct);
+            AnswerBot answerBot = viewProduct(update, idProduct, stateBot);
             answerBot.setText(answerBot.getText() + "\nВидео не найдены");
             return answerBot;
         }
@@ -134,7 +158,7 @@ public class Event {
         return answerBot;
     }
 
-    public AnswerBot viewProduct(Update update, Long idProduct) {
+    public AnswerBot viewProduct(Update update, Long idProduct, STATE_BOT stateBot) {
         Product product = productManager.findProductById(idProduct);
         String descriptionProduct = "Наименование: " + product.getName() +"\n\n"+product.getDescription() + "\n\n";
         descriptionProduct+="Цена: " + product.getPrice();
@@ -157,7 +181,7 @@ public class Event {
         btnVideo.setCallbackData("video_" + idProduct);
         listBtn.add(btnVideo);
         listBtn.add(new CallbackButton(BUTTONS.BTN_BACK));
-        AnswerBot answerBot = getAnswer(update, STATE_BOT.VIEW_PRODUCT, listBtn, 2);
+        AnswerBot answerBot = getAnswer(update, stateBot, listBtn, 2);
         answerBot.setText(answerBot.getText() + descriptionProduct);
         return answerBot;
     }

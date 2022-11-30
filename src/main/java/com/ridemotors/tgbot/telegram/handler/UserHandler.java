@@ -47,6 +47,11 @@ public class UserHandler implements Handler{
             if(textMessage.equals(COMMANDS.COMMAND_START.getText())) {
                 return eventUser.start(update);
             }
+            STATE_BOT state = stateDao.getState(update.getMessage().getChatId());
+            if (state.equals(STATE_BOT.SEARCH_PRODUCT)) {
+                String inputText = update.getMessage().getText();
+                return eventUser.findProducts(update, inputText, 1);
+            }
         }
         if(update.hasCallbackQuery()) {
 
@@ -58,6 +63,9 @@ public class UserHandler implements Handler{
             if(callbackData.equals(BUTTONS.BTN_BACK.toString()))
                 return eventUser.back(update);
 
+            if(callbackData.equals(BUTTONS.BTN_SEARCH.toString()))
+                return eventUser.info(update, STATE_BOT.SEARCH_PRODUCT, "", true);
+
             STATE_BOT state = stateDao.getState(update.getCallbackQuery().getMessage().getChatId());
             if(state.equals(STATE_BOT.USER_START)){
                 String[] data = callbackData.split("_");
@@ -65,10 +73,10 @@ public class UserHandler implements Handler{
                     if(data[0].equals("c"))
                         return eventUser.menuCategory(update, Long.valueOf(data[1]), Integer.valueOf(data[2]));
                     if(data[0].equals("p"))
-                        return eventUser.viewProduct(update, Long.valueOf(data[1]));
+                        return eventUser.viewProduct(update, Long.valueOf(data[1]), STATE_BOT.VIEW_PRODUCT);
                 }
             }
-            if(state.equals(STATE_BOT.VIEW_PRODUCT)){
+            if(state.equals(STATE_BOT.VIEW_PRODUCT) || state.equals(STATE_BOT.VIEW_PRODUCT_SEARCH)){
                 String[] data = callbackData.split("_");
                 if(data.length==2) {
                     if(data[0].equals("photo"))
@@ -76,6 +84,15 @@ public class UserHandler implements Handler{
                     if(data[0].equals("video"))
                         return eventUser.sendVideos(update, Long.valueOf(data[1]));
                 }
+            }
+            if(state.equals(STATE_BOT.SEARCH_PRODUCT)){
+                String[] data = callbackData.split("_");
+                if(data.length==3) {
+                    if(data[0].equals("s"))
+                        return eventUser.findProducts(update, data[1], Integer.valueOf(data[2]));
+                }
+                if(data[0].equals("p"))
+                    return eventUser.viewProduct(update, Long.valueOf(data[1]), STATE_BOT.VIEW_PRODUCT_SEARCH);
             }
 
         }

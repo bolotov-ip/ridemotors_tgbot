@@ -32,6 +32,11 @@ public class ProductManager {
 
     private final Logger log = LoggerFactory.getLogger(ProductManager.class);
 
+    public List<Product> searchProductByName(String inputText) {
+        List<Product> resultSearch = productDao.findByNameContainingIgnoreCase(inputText);
+        return resultSearch;
+    }
+
     public File getExcelProducts(Long rootCategoryId, boolean isAdmin) {
         List<Product> resultProducts = new ArrayList<>();
         Category rootCategory = categoryManager.getCategory(rootCategoryId);

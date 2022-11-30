@@ -5,8 +5,11 @@ import java.util.Map;
 
 public enum STATE_BOT {
     VIEW_PRODUCT,
+    VIEW_PRODUCT_SEARCH,
 
     ADMIN_START,
+    ADMIN_ADD_ADMIN,
+    ADMIN_LIST_ADMINS,
     ADMIN_CATEGORY,
     ADMIN_PRODUCTS,
     ADMIN_LOAD_PRODUCTS,
@@ -16,7 +19,7 @@ public enum STATE_BOT {
     ADMIN_DELETE_RESOURCES_BY_ID,
     ADMIN_DELETE_ALL_RESOURCES,
     ADMIN_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY,
-
+    SEARCH_PRODUCT,
     USER_START,
     USER_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY,
     USER_CATEGORY;
@@ -44,6 +47,10 @@ public enum STATE_BOT {
                 "Здесь представлен весь ассортимент товаров\n");
         textMessage.put("USER_CATEGORY", "Категория: ");
         textMessage.put("USER_DOWNLOAD_EXCEL_PRODUCT_BY_CATEGORY", "Введите идентификатор категории.\n");
+        textMessage.put("SEARCH_PRODUCT", "Введите часть имени для поиска\n");
+        textMessage.put("VIEW_PRODUCT_SEARCH", "Введите часть имени для поиска\n");
+        textMessage.put("ADMIN_ADD_ADMIN", "Введите username пользователя\n");
+        textMessage.put("ADMIN_LIST_ADMINS", "Список администраторов:\n");
     }
 
     public String getTextMessage() {

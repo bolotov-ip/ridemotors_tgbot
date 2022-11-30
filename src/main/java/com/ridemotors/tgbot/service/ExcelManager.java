@@ -65,11 +65,11 @@ public class ExcelManager {
         style.setVerticalAlignment(VerticalAlignment.CENTER);
 
         List<String> columnNameCommon = new ArrayList<>();
-        if(isAdmin)
+        if(isAdmin) {
             columnNameCommon.add("id*");
-        columnNameCommon.add("Наименование*");
-        if(isAdmin)
             columnNameCommon.add("id_category*");
+        }
+        columnNameCommon.add("Наименование*");
         columnNameCommon.add("Наименование категории**");
         columnNameCommon.add("Описание*");
         columnNameCommon.add("Цена*");
